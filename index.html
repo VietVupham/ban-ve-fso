@@ -71,9 +71,10 @@ mark{background:var(--hl);color:inherit;border-radius:3px;padding:0 1px}
 .vb input{width:56px;height:40px;border:0;border-radius:8px;text-align:center;font:inherit;background:#fff;color:#111}
 .vb span{opacity:.8;font-size:13px}
 #sc{flex:1;overflow:auto;position:relative;background:#101517;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y pinch-zoom}
-#sc figure{margin:0 auto 6px;position:relative;background:#fff;min-width:0}
+#sc figure{margin:0 auto 8px;position:relative;min-width:0}
+#sc .pw{position:relative;background:#fff;width:100%}
 #sc figure img{display:block;width:100%;height:auto}
-#sc figcaption{position:absolute;left:6px;top:6px;z-index:1;background:rgba(11,44,53,.75);color:#fff;font-size:11px;border-radius:5px;padding:1px 6px;max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none}
+#sc figcaption{display:block;color:#9fb8c0;font-size:11px;padding:3px 6px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #sc .err{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#444;padding:20px;text-align:center}
 .vb button#vmode{font-size:13px}
 #vq{padding:6px 10px;background:#13363f;font-size:12.5px;display:none;overflow-x:auto;white-space:nowrap}
@@ -195,15 +196,15 @@ function buildScroll(){
   const sc=$('#sc'); sc.innerHTML=''; if(V.io)V.io.disconnect();
   V.io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){V.io.unobserve(e.target);loadFig(e.target);}}),{root:sc,rootMargin:'200% 0px'});
   V.list.forEach((p,i)=>{
-    const f=document.createElement('figure'); f.dataset.i=i; f.style.aspectRatio=p.src==='b'?'0.707':'1.414';
-    const c=document.createElement('figcaption'); c.textContent=p.src==='b'?`MOS.${BP.byKey[p.k].no} · tr.${p.p}`:`${p.title} · tr.${p.page}`; f.appendChild(c); sc.appendChild(f); V.io.observe(f);
+    const f=document.createElement('figure'); f.dataset.i=i; const pw=document.createElement('div'); pw.className='pw'; pw.style.aspectRatio=p.src==='b'?'0.707':'1.414';
+    const c=document.createElement('figcaption'); c.textContent=p.src==='b'?`MOS.${BP.byKey[p.k].no} · tr.${p.p}`:`${p.title} · tr.${p.page}`; f.appendChild(c); f.appendChild(pw); sc.appendChild(f); V.io.observe(f);
   });
   applyZ(); const f=sc.children[V.i]; if(f) sc.scrollTop=f.offsetTop;
 }
 async function loadFig(f){
   const p=V.list[+f.dataset.i];
-  try{ const u=await imgUrl(p); const im=new Image(); im.alt=meta(p).title; im.draggable=false; im.onload=()=>{f.style.aspectRatio=im.naturalWidth+'/'+im.naturalHeight;}; im.src=u; f.appendChild(im); }
-  catch(e){ f.insertAdjacentHTML('beforeend','<div class="err">Không tải được trang này. Kiểm tra mạng rồi cuộn lại.</div>'); V.io&&V.io.observe(f); }
+  try{ const u=await imgUrl(p); const im=new Image(); im.alt=meta(p).title; im.draggable=false; const pw=f.querySelector('.pw'); im.onload=()=>{pw.style.aspectRatio=im.naturalWidth+'/'+im.naturalHeight;}; im.src=u; pw.appendChild(im); }
+  catch(e){ f.querySelector('.pw').insertAdjacentHTML('beforeend','<div class="err">Không tải được trang này. Kiểm tra mạng rồi cuộn lại.</div>'); V.io&&V.io.observe(f); }
 }
 function applyZ(){ $('#sc').querySelectorAll('figure').forEach(f=>{f.style.width=(V.z*100)+'%';}); }
 function goto(i){ i=Math.max(0,Math.min(V.list.length-1,i)); V.i=i; if(V.mode==='scroll'){const f=$('#sc').children[i]; if(f)$('#sc').scrollTo({top:f.offsetTop,behavior:'smooth'});} setHead(); if(V.mode!=='scroll')showFit(); }
