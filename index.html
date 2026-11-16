@@ -33,7 +33,12 @@ main{max-width:980px;margin:0 auto;padding:12px 12px calc(40px + env(safe-area-i
 .grp{background:var(--card);border:1px solid var(--line);border-radius:var(--r);margin-bottom:12px;overflow:hidden}
 .grp>h3{margin:0;padding:10px 12px;font-size:14.5px;background:var(--accbg);display:flex;justify-content:space-between;gap:8px}
 .grp>h3 small{font-weight:400;color:var(--mute);white-space:nowrap}
-.row{display:flex;gap:10px;align-items:center;width:100%;text-align:left;border:0;border-top:1px solid var(--line);background:none;padding:10px 12px}
+.row{display:flex;gap:8px;align-items:center;width:100%;text-align:left;border:0;border-top:1px solid var(--line);background:none;padding:6px 10px;font-size:13.5px;line-height:1.3}
+.grp.shop>h3{cursor:pointer;user-select:none;padding:8px 10px}
+.grp.shop>h3::before{content:'▸';margin-right:6px;color:var(--mute)}
+.grp.shop.open>h3::before{content:'▾'}
+.grp.shop:not(.open)>:not(h3){display:none}
+.sub{padding:3px 10px!important;font-size:11.5px!important}
 .row:hover{background:var(--accbg)}
 .row .pg{flex:none;min-width:42px;text-align:center;font-size:12px;color:var(--mute);border:1px solid var(--line);border-radius:6px;padding:2px 4px}
 .row .t{flex:1;min-width:0}
@@ -122,7 +127,7 @@ function normChar(c){
 function norm(s){ let o=''; for(const ch of s) o+= ch.charCodeAt(0)<128 ? (ch>='A'&&ch<='Z'?ch.toLowerCase():ch) : normChar(ch).slice(0,ch.length); return o; }
 function normQ(q){ return norm(q).replace(/(?:\bphi|\bfi|\bf)\s*(?=\d)/g,'ø').replace(/\s+/g,' ').trim(); }
 
-let SHOP=[],BP={docs:[],pages:[]},state={tab:'shop',zone:'Tất cả',cat:'Tất cả',bcat:'Tất cả',q:''};
+let SHOP=[],BP={docs:[],pages:[]},state={open:new Set(),tab:'shop',zone:'Tất cả',cat:'Tất cả',bcat:'Tất cả',q:''};
 const ZONES=['Tất cả','Zone 1','Zone 2','Zone 3','Chung'];
 const SCATS=['Tất cả','Cột - Vách','Dầm','Sàn','Bể nước PCCC'];
 
@@ -241,7 +246,7 @@ function renderShop(){
   if(!list.length) h+='<div class="empty">Chưa có bản vẽ cho lựa chọn này.</div>';
   const groups=new Map(); list.forEach(p=>{ if(!groups.has(p.doc))groups.set(p.doc,[]); groups.get(p.doc).push(p); });
   for(const [doc,arr] of groups){
-    h+=`<section class="grp"><h3><span>${esc(arr[0].cum)}</span><small>${esc('STR.'+doc)} · ${arr.length} trang</small></h3>`;
+    h+=`<section class="grp shop${(groups.size===1||state.open.has(doc))?' open':''}" data-doc="${doc}"><h3><span>${esc(arr[0].cum)}</span><small>${esc('STR.'+doc)} · ${arr.length} trang</small></h3>`;
     let lastKind=null;
     arr.forEach(p=>{
       const front=['Bìa','Danh mục bản vẽ'].includes(p.kind);
@@ -298,6 +303,7 @@ function render(){
   window.scrollTo(0,0);
 }
 $('#app').addEventListener('click',e=>{
+  const gh=e.target.closest('.grp.shop>h3'); if(gh){const g=gh.parentNode;g.classList.toggle('open');g.classList.contains('open')?state.open.add(g.dataset.doc):state.open.delete(g.dataset.doc);return;}
   const c=e.target.closest('.chip'); if(c){ state[c.dataset.k]=c.dataset.v; const y=scrollY; render(); scrollTo(0,y); return; }
   const o=e.target.closest('[data-open]');
   if(o){ const grp=SHOP.filter(p=>p.doc===SHOP.find(x=>x.id===o.dataset.open).doc); const list=grp; openViewer(list,list.findIndex(p=>p.id===o.dataset.open)); return; }
