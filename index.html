@@ -82,6 +82,17 @@ mark{background:var(--hl);color:inherit;border-radius:3px;padding:0 1px}
 #syn{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 12px;background:#0b2c35;color:#b9d6dc;font-size:12px}
 #syn button{background:#164b59;color:#fff;border:0;border-radius:14px;padding:4px 12px;font-size:12px}
 #syn button:disabled{opacity:.6}
+
+#ins{display:none;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:#fff7e6;color:#5a3b00;font-size:13px;border-bottom:1px solid #f0d9a8}
+#ins button{border:0;border-radius:14px;padding:6px 12px;font-size:13px}
+#insb{background:#e8620e;color:#fff;font-weight:600}#insx{background:none;color:#8a6a2a}
+#ov{position:fixed;inset:0;background:rgba(6,30,38,.88);z-index:120;display:none;align-items:center;justify-content:center;padding:24px;color:#fff;text-align:center}
+#ov .bx{background:#0f3b48;border-radius:18px;padding:24px 22px;max-width:340px;width:100%}
+#ov h3{margin:12px 0 6px;font-size:19px}#ov p{margin:6px 0;font-size:14px;line-height:1.5;color:#cfe3e8;text-align:left}
+#ov .sp{width:44px;height:44px;border:5px solid #2b6b7c;border-top-color:#ffb347;border-radius:50%;margin:0 auto;animation:spn 1s linear infinite}
+@keyframes spn{to{transform:rotate(360deg)}}
+#ov .ok{font-size:46px;line-height:44px;color:#6ee7b7}
+#ov button{margin-top:14px;border:0;border-radius:12px;padding:9px 20px;background:#e8620e;color:#fff;font-size:14px}
 #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#164b59;color:#fff;padding:10px 16px;border-radius:10px;z-index:99;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.4)}
 </style>
 <link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
@@ -95,9 +106,11 @@ mark{background:var(--hl);color:inherit;border-radius:3px;padding:0 1px}
     <button class="tab" role="tab" data-t="bptc">Biện pháp thi công</button>
   </div>
 </header>
+<div id="ins"><span id="inst">Cài app về điện thoại để mở nhanh, dùng cả khi mất mạng.</span><span><button id="insb">📲 Cài đặt</button> <button id="insx" aria-label="Để sau">✕</button></span></div>
 <div id="syn"><span id="synt">Đang kiểm tra dữ liệu…</span><button id="synb" type="button">⟳ Đồng bộ</button></div>
 <main id="app"><div class="empty">Đang tải dữ liệu…</div></main>
 
+<div id="ov"><div class="bx" id="ovb"></div></div>
 <div id="v" role="dialog" aria-modal="true">
   <div class="vt"><button class="x" id="vx" aria-label="Đóng">✕</button><div class="tt"><b id="vtt"></b><span id="vts"></span></div></div>
   <div id="vq"></div>
@@ -174,7 +187,7 @@ function setMode(){
   $('#vmode').textContent=sc?'⤢ Từng trang':'▤ Cuộn dọc';
   const vq=$('#vq'); if(V.q){vq.classList.add('on');vq.innerHTML='Từ khoá: <b>'+esc(V.q)+'</b> · cuộn xuống hoặc dùng ‹ › để xem các trang khớp';} else vq.classList.remove('on');
 }
-function openViewer(list,i,q){ V.list=list;V.i=i;V.q=q||'';V.z=1;$('#v').classList.add('on');document.body.style.overflow='hidden';setMode();render2(true);}
+function openViewer(list,i,q){ try{const p0=list[i];track('view',p0.src==='b'?'BPTC MOS.'+BP.byKey[p0.k].no:'Shop STR.'+p0.doc);}catch(e){} V.list=list;V.i=i;V.q=q||'';V.z=1;$('#v').classList.add('on');document.body.style.overflow='hidden';setMode();render2(true);}
 function closeViewer(){ $('#v').classList.remove('on');document.body.style.overflow='';if(V.io)V.io.disconnect();$('#sc').innerHTML='';if(location.hash)history.replaceState(null,'',location.pathname+location.search); }
 function render2(first){ setHead(); if(V.mode==='scroll'){buildScroll(first);} else showFit(); }
 /* --- chế độ cuộn dọc --- */
@@ -321,6 +334,30 @@ function route(){
   if((m=h.match(/^s-(\d{3})-(\d+)$/))){ const list=SHOP.filter(p=>p.doc===m[1]); const i=list.findIndex(p=>p.page===+m[2]); if(i>=0)openViewer(list,i); }
   else if((m=h.match(/^b-([0-9a-f]{10})-(\d+)$/))){ const list=BP.pages.filter(p=>p.k===m[1]).map(p=>Object.assign({src:'b'},p)).sort((a,b)=>a.p-b.p); const i=list.findIndex(p=>p.p===+m[2]); if(i>=0){state.tab='bptc';render();openViewer(list,i);} }
 }
+
+/* ---------- ghi nhận truy cập ẩn (không hiển thị trên giao diện) ---------- */
+const SB={u:'https://ppdxqcrckbwckqzumlwy.supabase.co',k:'sb_publishable_obBOmHzVr55kpb2eG2BwAQ_wcNW7tkg'};
+const STANDALONE=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+let VID='';try{VID=localStorage.getItem('bv_vid')||'';if(!VID){VID=(crypto.randomUUID?crypto.randomUUID():String(Math.random()).slice(2)+Date.now()).slice(0,36);localStorage.setItem('bv_vid',VID);}}catch(e){VID=VID||'ns-'+Math.random().toString(36).slice(2,10);}
+const PLAT=/iPhone|iPad|iPod/.test(navigator.userAgent)?'iOS':/Android/.test(navigator.userAgent)?'Android':/Windows/.test(navigator.userAgent)?'Windows':/Mac/.test(navigator.userAgent)?'Mac':'Khác';
+function track(ev,doc){ try{ fetch(SB.u+'/rest/v1/bv_visits',{method:'POST',keepalive:true,headers:{apikey:SB.k,Authorization:'Bearer '+SB.k,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({vid:VID,ev,doc:doc?String(doc).slice(0,120):null,plat:PLAT,mode:STANDALONE?'app':'web',ua:navigator.userAgent.slice(0,200)})}).catch(()=>{}); }catch(e){} }
+track('open');
+/* ---------- cài đặt ứng dụng ---------- */
+let DEF=null; const ov=$('#ov'),ovb=$('#ovb');
+const IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+function showOv(h){ovb.innerHTML=h;ov.style.display='flex';}
+function hideOv(){ov.style.display='none';}
+function ovDone(){ showOv('<div class="ok">✓</div><h3>Đã cài đặt xong</h3><p style="text-align:center">Ứng dụng đã được thêm vào màn hình chính. Hãy mở từ biểu tượng ở màn hình chính để dùng.</p><button id="ovx">Đóng</button>'); $('#ovx').onclick=hideOv; $('#ins').style.display='none'; try{localStorage.setItem('bv_inst','1');}catch(e){} track('installed'); }
+function iosGuide(){ showOv('<h3>Thêm vào màn hình chính</h3><p>Apple không cho trang web tự cài, nên bạn làm 3 bước (khoảng 5 giây):</p><p>1. Bấm nút <b>Chia sẻ</b> ⬆️ ở thanh dưới (hoặc trên) của Safari.</p><p>2. Chọn <b>Thêm vào Màn hình chính</b>.</p><p>3. Bấm <b>Thêm</b>. Biểu tượng sẽ xuất hiện ngay trên màn hình chính.</p><p style="color:#ffd9a8">Nếu đang mở trong Zalo/Facebook, hãy mở bằng Safari trước.</p><button id="ovx">Đã hiểu</button>'); $('#ovx').onclick=hideOv; track('install-guide'); }
+function otherGuide(){ showOv('<h3>Cài đặt ứng dụng</h3><p>Trình duyệt này chưa hiện hộp cài đặt tự động. Hãy mở menu ⋮ của trình duyệt rồi chọn <b>Cài đặt ứng dụng</b> hoặc <b>Thêm vào màn hình chính</b>.</p><button id="ovx">Đã hiểu</button>'); $('#ovx').onclick=hideOv; track('install-guide'); }
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();DEF=e;});
+window.addEventListener('appinstalled',()=>{ovDone();});
+$('#insb').onclick=async()=>{
+  if(DEF){ const p=DEF; DEF=null; showOv('<div class="sp"></div><h3>Đang cài đặt…</h3><p style="text-align:center">Hãy bấm <b>Cài đặt</b> trong hộp thoại của trình duyệt. Ứng dụng sẽ tự thêm vào màn hình chính.</p>'); try{ p.prompt(); const r=await p.userChoice; if(r.outcome!=='accepted'){hideOv();track('install-declined');} else { showOv('<div class="sp"></div><h3>Đang thêm vào màn hình chính…</h3><p style="text-align:center">Vui lòng chờ vài giây.</p>'); setTimeout(()=>{if(ov.style.display==='flex'&&/Đang thêm/.test(ovb.textContent))ovDone();},8000); } }catch(e){hideOv();} }
+  else if(IOS) iosGuide(); else otherGuide();
+};
+$('#insx').onclick=()=>{ $('#ins').style.display='none'; try{localStorage.setItem('bv_insx',String(Date.now()));}catch(e){} };
+(function(){ let hide=STANDALONE; try{ if(localStorage.getItem('bv_inst')==='1')hide=true; const t=+localStorage.getItem('bv_insx')||0; if(Date.now()-t<3*864e5)hide=true; }catch(e){} if(!hide)$('#ins').style.display='flex'; })();
 
 /* ---------- đồng bộ ---------- */
 const fmtT=iso=>{try{const d=new Date(iso);const p=n=>String(n).padStart(2,'0');return `${p(d.getHours())}:${p(d.getMinutes())} ${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()}`;}catch(e){return iso||'';}};
