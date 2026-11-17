@@ -114,7 +114,7 @@ mark{background:var(--hl);color:inherit;border-radius:3px;padding:0 1px}
 
 <div id="ov"><div class="bx" id="ovb"></div></div>
 <div id="v" role="dialog" aria-modal="true">
-  <div class="vt"><button class="x" id="vx" aria-label="Đóng">✕</button><div class="tt"><b id="vtt"></b><span id="vts"></span></div></div>
+  <div class="vt"><button class="x" id="vx" aria-label="Đóng">✕</button><div class="tt"><b id="vtt"></b><span id="vts"></span></div><button id="vqr" style="display:none;flex:none;border:0;border-radius:8px;background:#e2f2fc;color:#0b2c35;font-weight:700;font-size:13px;padding:9px 11px;line-height:1.15">↩ Tra thép<br>QR</button></div>
   <div id="vq"></div>
   <div id="sc"></div>
   <div id="st" style="display:none"><div class="ld" id="vld">Đang tải trang…</div></div>
@@ -237,6 +237,7 @@ function zoomAt(f,cx,cy){ const n=Math.min(Math.max(V.sc*f,V.fit*.9),V.fit*12); 
   st.addEventListener('dblclick',e=>{const r=st.getBoundingClientRect(); if(V.sc>V.fit*1.5)fit(); else zoomAt(3,e.clientX-r.left,e.clientY-r.top);});
 })();
 $('#vx').onclick=closeViewer;
+if(/[?&]from=qr/.test(location.search)){$('#vqr').style.display='block';$('#vqr').onclick=()=>{location.href='qr/index.html?app=1&back=1'};}
 $('#vp').onclick=()=>goto(V.i-1);
 $('#vnx').onclick=()=>goto(V.i+1);
 $('#vmode').onclick=()=>{ V.mode=V.mode==='scroll'?'fit':'scroll'; setMode(); render2(); };
@@ -333,7 +334,7 @@ $('#q').addEventListener('input',()=>{ if(!$('#q').value.trim()&&state.q){state.
 function route(){
   render();
   const h=location.hash.slice(1); let m;
-  if((m=h.match(/^s-(\d{3})-(\d+)$/))){ const list=SHOP.filter(p=>p.doc===m[1]); const i=list.findIndex(p=>p.page===+m[2]); if(i>=0)openViewer(list,i); }
+  if((m=h.match(/^s-(\d{3})-(\d+)$/))){ const list=SHOP.filter(p=>p.doc===m[1]); const i=list.findIndex(p=>p.page===+m[2]); if(i>=0){state.tab='shop';render();openViewer(list,i);} }
   else if((m=h.match(/^b-([0-9a-f]{10})-(\d+)$/))){ const list=BP.pages.filter(p=>p.k===m[1]).map(p=>Object.assign({src:'b'},p)).sort((a,b)=>a.p-b.p); const i=list.findIndex(p=>p.p===+m[2]); if(i>=0){state.tab='bptc';render();openViewer(list,i);} }
 }
 
