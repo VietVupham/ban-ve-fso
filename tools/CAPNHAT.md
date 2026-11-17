@@ -5,3 +5,6 @@
 4. pack.py: render ảnh (shop 3600px q72, BPTC 1800px q60) thành gói data/c/*.txt + version.json (có giờ cập nhật + hash từng gói)
 5. Chép site/ vào repo, commit, git push -> GitHub Pages tự cập nhật; app trên điện thoại tự đồng bộ hoặc bấm nút ⟳.
 Chỉ gói có hash đổi mới được tải lại.
+
+## Tab "Tra thép QR"
+Là bản sao của repo riêng `VietVupham/thep-qr-b1` (index.html + thư mục d/) đặt trong `qr/`. Khi app QR được cập nhật (đẩy vào thep-qr-b1), chép lại index.html và d/ sang `qr/` rồi push repo này. App nhúng bằng iframe (cho phép camera).
