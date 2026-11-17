@@ -497,20 +497,21 @@ function findDetail(tag){
    const isKick=/CHAN\s*KE|CHÂN\s*KÊ/.test(M+o);
    const isMesh=/\bGC\b|GIA\s*C[UƯ][OỜ]NG|L[OỚ]P\s*(TR[EÊ]N|D[UƯ][OỚ]I)|\bPX\b|\bPY\b/.test(M);
    if(isKick||isMesh){
-     const zm=/ZONE\s*(\d\.\d)/.exec(o); const z=zm?zm[1]:'';
+     const zm=/(?:ZONE|\bZ)\s*(\d\.\d)/.exec(o); const z=zm?zm[1]:'';
      const layer=/TR[EÊ]N/.test(M)?'tren':/D[UƯ][OỚ]I/.test(M)?'duoi':'';
      const dir=/\bPX\b|PHUONG\s*X/.test(M)?'X':/\bPY\b|PHUONG\s*Y/.test(M)?'Y':'';
      const gc=/\bGC\b|GIA\s*C[UƯ][OỜ]NG/.test(M);
-     const zf=z||((/\bB1\b|\bH1\b|HAM B1/.test(M+o)&&!/ZONE\s*[23]/.test(o))?'1':'');
-     let c=Object.keys(D.details).filter(id=>{const d=D.details[id];
+     const zf=z||((/\bB1\b|\bH1\b|HAM B1/.test(M+o)&&!/(?:ZONE|\bZ)\s*[23]/.test(o))?'1':'');
+     const pick=strict=>Object.keys(D.details).filter(id=>{const d=D.details[id];
        if(d.kind!=='slabplan')return false;
        if(isKick)return zf?String(d.zone||'').startsWith(zf[0])&&!!d.kick:!!d.kick;
        if(d.kick||d.cap)return false;
        if(zf&&d.zone&&!String(d.zone).startsWith(zf[0]))return false;
-       if(z&&d.zone&&d.zone!==z)return false;
+       if(strict&&z&&d.zone&&d.zone!==z)return false;
        if(layer&&d.layer&&d.layer!==layer)return false;
        if(dir&&d.dir&&d.dir!==dir)return false;
        return true});
+     let c=pick(true); if(!c.length)c=pick(false);
      if(c.length>1&&!isKick){const ex=c.filter(id=>!!D.details[id].gc===gc);if(ex.length)c=ex}
      if(c.length){slabIds=c}
    }}
@@ -620,7 +621,8 @@ function colMember(member,tag){
 let curView='plan',curDet=null,planView=null;
 /* ---- liên kết sang tab Shop của app bản vẽ ---- */
 const SHOPMAP={B1:'011',B2:'006',B3:'007',C1:'008',C2:'004',MU:'009',S1:'012',S2:'009',S3:'010',BN:'003'};
-function shopRef(id){const m=/^([A-Z]+\d*)_(\d+)$/.exec(id||'');if(!m||!SHOPMAP[m[1]])return null;return{doc:SHOPMAP[m[1]],page:+m[2]}}
+const APPM=/[?&]app=1/.test(location.search);
+function shopRef(id){if(!APPM)return null;const m=/^([A-Z]+\d*)_(\d+)$/.exec(id||'');if(!m||!SHOPMAP[m[1]])return null;return{doc:SHOPMAP[m[1]],page:+m[2]}}
 function shopHref(){const r=shopRef(curDet&&curDet.id);return r?'../?from=qr#s-'+r.doc+'-'+r.page:null}
 function updShopBtn(){const b=document.getElementById('mapShop');if(!b)return;const r=cur&&shopRef(curDet&&curDet.id);
   if(r){b.style.display='flex';b.href=shopHref();b.querySelector('small').textContent='STR.'+r.doc+' · trang '+r.page}else b.style.display='none'}
@@ -653,7 +655,23 @@ function setView(v){
   }
   if(window.innerWidth<900)goMap();
 }
+/* nhóm tem không gắn một vị trí riêng (đợt 7 trở đi) */
+function extraMember(member,tag){
+  const u=String(member||'').toUpperCase(),o=String((tag&&tag.order)||'').toUpperCase();
+  const zm=/(?:ZONE|\bZ)\s*(\d\.\d)/.exec(o),z=zm?zm[1]:'';
+  const kg=tag?tag.kg:0,mk=(title,note,wide)=>({segs:[],n:0,kg,dot:7,title,note,wide:!!wide});
+  let r=/^GC LOP (DUOI|TREN) (PX|PY)$/.exec(u);
+  if(r)return mk('Sàn gia công · lớp '+(r[1]==='DUOI'?'dưới':'trên')+' · phương '+r[2].slice(1)+(z?' · Zone '+z:''),
+    'Thép lưới gia công rải khắp sàn'+(z?' Zone '+z:'')+', không gắn một vị trí riêng. App mở đúng tờ mặt bằng thép sàn theo lớp, phương và Zone ghi trên tem.'+
+    (z==='3.2'?' Lưu ý: bộ shop sàn STR.010 hiện chỉ có các tờ Zone 3.1, chưa có tờ Zone 3.2, nên app mở tờ Zone 3.1 để tham khảo.':''),true);
+  if(/^MC\s*\d/.test(u)||/VACH|VG\s*\d/.test(u+' '+o))return mk('Vách giặt cáp · '+member,'Thép vách giặt cáp (mặt cắt MC): chưa có bản vẽ shop hoặc bản vẽ vị trí trong dữ liệu nên app chưa chỉ được vị trí. Cần bản vẽ vách giặt cáp để gắn.');
+  if(/^MUONG/.test(u))return mk('Thép mương nước','Thép mương nước: chưa có bản vẽ shop hoặc vị trí trong dữ liệu nên app chưa chỉ được vị trí.');
+  if(u==='THEP BO SUNG'){const b=D.members['BO SUNG HAM B1'];return mk('Thép bổ sung',(b&&b.note)||'Thép bổ sung không gắn một vị trí cụ thể.',true)}
+  if(/^DB\d/.test(u)&&/DAM BIEN/.test(o))return mk('Dầm biên '+member.replace(/[-. ]+$/,''),'Dầm biên: mặt bằng dầm chưa có nhãn riêng cho dầm này nên app chưa chỉ được vị trí.');
+  return null;
+}
 function dynMember(member,tag){
+  const em=extraMember(member,tag);if(em)return em;
   const cm=colMember(member,tag);if(cm)return cm;
   /* tem của đợt khác (ví dụ dầm đợt 2): tìm đoạn dầm theo nhãn trên mặt bằng */
   {const cm=capMember(member,tag);if(cm)return cm}
@@ -677,8 +695,10 @@ function dynMember(member,tag){
           const g=grab(base);
           if(g){got=g;used=base;approx=true;break}
         }
-        if(!got){const kids=Object.keys(D.labels).filter(k=>k.startsWith(c+'.')||k.startsWith(c+'-'));
+        if(!got){const c2=c.replace(/[.\-]+$/,'');const kids=Object.keys(D.labels).filter(k=>k.startsWith(c2+'.')||k.startsWith(c2+'-'));
           if(kids.length){got=[].concat(...kids.map(k=>grab(k)));used=c;if(kids.length>1)approx=true}}
+        if(!got&&/\d[A-Z]$/.test(c)){const k2=Object.keys(D.labels).filter(k=>k.startsWith(c.slice(0,-1)+'.'));
+          if(k2.length){got=[].concat(...k2.map(k=>grab(k)));used=c.slice(0,-1);approx=true}}
         if(!got){ /* nhãn trên mặt bằng là tiền tố của tên tem: HB16.2B -> HB16.2 */
           const pre=Object.keys(D.labels).filter(k=>c.startsWith(k)).sort((a,b)=>b.length-a.length);
           if(pre.length){got=grab(pre[0]);used=pre[0];approx=true}}
@@ -699,7 +719,7 @@ function dynMember(member,tag){
 function batchLabel(M,tag,member){
   const o=(tag&&tag.order)||'';
   const b=/(\d+)\s*(?:st|nd|rd|th)/i.exec(o);
-  const z=/ZONE\s*([\d.]+)/i.exec(o);
+  const z=/(?:ZONE|\bZ)\s*(\d(?:\.\d)?)/i.exec(o);
   const what=/COT|COLUMN|DAI COT/i.test(o)?'cột':/VACH/i.test(o)?'vách':/SAN|O SAN|MU COT/i.test(o)?'sàn':/DAM/i.test(o)?'dầm':'';
   if(b){let t=(M.title?'':'Cấu kiện '+member+' · ')+(what?what+' ':'')+'đợt '+b[1].replace(/^0+/,'');
     if(z)t+=' · Zone '+z[1];
@@ -807,7 +827,7 @@ map.addEventListener('pointermove',e=>{
 ['pointerup','pointercancel'].forEach(t=>map.addEventListener(t,e=>{ptrs.delete(e.pointerId);last=null}));
 /* chạm nhanh vào thanh đánh dấu -> nhảy sang trang bản vẽ Shop */
 let tapS=null;
-map.addEventListener('pointerdown',e=>{tapS=(ptrs.size===0&&e.target.closest&&e.target.closest('.pin'))?{x:e.clientX,y:e.clientY,t:Date.now()}:null},true);
+map.addEventListener('pointerdown',e=>{tapS=(APPM&&ptrs.size===0&&e.target.closest&&e.target.closest('.pin'))?{x:e.clientX,y:e.clientY,t:Date.now()}:null},true);
 map.addEventListener('pointerup',e=>{const t=tapS;tapS=null;if(t&&e.type==='pointerup'&&Math.hypot(e.clientX-t.x,e.clientY-t.y)<10&&Date.now()-t.t<700)openShop()},true);
 map.addEventListener('wheel',e=>{e.preventDefault();const r=map.getBoundingClientRect();zoomAt(e.deltaY<0?1.2:1/1.2,e.clientX-r.left,e.clientY-r.top)},{passive:false});
 $('#zIn').onclick=()=>zoomAt(1.4,map.clientWidth/2,map.clientHeight/2);
