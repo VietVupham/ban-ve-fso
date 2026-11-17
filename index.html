@@ -19,8 +19,9 @@ header{position:sticky;top:0;z-index:5;background:var(--acc);color:#fff;padding:
 .sb{display:flex;gap:8px}
 .sb input{flex:1;min-width:0;border:0;border-radius:var(--r);padding:11px 12px;font:inherit;background:#fff;color:#1c2428}
 .sb button{border:0;border-radius:var(--r);padding:0 14px;background:var(--acc2);color:#fff;font-weight:600}
-.tabs{display:flex;gap:6px;margin-top:10px}
-.tab{flex:1;border:0;padding:9px 6px;border-radius:var(--r);background:rgba(255,255,255,.14);color:#fff;font-weight:600}
+.tabs{display:flex;gap:6px;margin-top:10px;overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none;scroll-snap-type:x proximity;overscroll-behavior-x:contain;touch-action:pan-x}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:1 0 auto;white-space:nowrap;scroll-snap-align:start;border:0;padding:9px 14px;border-radius:var(--r);background:rgba(255,255,255,.14);color:#fff;font-weight:600}
 .tab[aria-selected=true]{background:#fff;color:var(--acc)}
 @media(prefers-color-scheme:dark){.tab[aria-selected=true]{background:#e8edef;color:#0b2c35}}
 main{max-width:980px;margin:0 auto;padding:12px 12px calc(40px + env(safe-area-inset-bottom))}
@@ -52,6 +53,7 @@ main{max-width:980px;margin:0 auto;padding:12px 12px calc(40px + env(safe-area-i
 .empty{padding:30px 10px;text-align:center;color:var(--mute)}
 mark{background:var(--hl);color:inherit;border-radius:3px;padding:0 1px}
 .res .snip{font-size:13px;color:var(--mute);margin-top:2px;overflow-wrap:anywhere}
+.row.old{opacity:.62}.oldb{color:#b45309;font-weight:600}.newb{color:#15803d;font-weight:600}.grp>.sub{padding:6px 12px;font-size:12.5px;color:var(--mute)}
 .src{display:inline-block;font-size:11px;border-radius:5px;padding:0 6px;margin-right:6px;background:var(--accbg);color:var(--acc);font-weight:700}
 .note{font-size:13px;color:var(--mute);margin:6px 2px 12px}
 /* viewer */
@@ -106,6 +108,7 @@ mark{background:var(--hl);color:inherit;border-radius:3px;padding:0 1px}
     <button class="tab" role="tab" data-t="shop">Shop drawing</button>
     <button class="tab" role="tab" data-t="bptc">BPTC</button>
     <button class="tab" role="tab" data-t="qr">Tra thép QR</button>
+    <button class="tab" role="tab" data-t="design">Bản vẽ thiết kế</button>
   </div>
 </header>
 <div id="ins"><span id="inst">Cài app về điện thoại để mở nhanh, dùng cả khi mất mạng.</span><span><button id="insb">📲 Cài đặt</button> <button id="insx" aria-label="Để sau">✕</button></span></div>
@@ -142,7 +145,7 @@ function normChar(c){
 function norm(s){ let o=''; for(const ch of s) o+= ch.charCodeAt(0)<128 ? (ch>='A'&&ch<='Z'?ch.toLowerCase():ch) : normChar(ch).slice(0,ch.length); return o; }
 function normQ(q){ return norm(q).replace(/(?:\bphi|\bfi|\bf)\s*(?=\d)/g,'ø').replace(/\s+/g,' ').trim(); }
 
-let SHOP=[],BP={docs:[],pages:[]},state={open:new Set(),tab:'shop',zone:'Tất cả',cat:'Tất cả',bcat:'Tất cả',q:''};
+let SHOP=[],BP={docs:[],pages:[]},DS={docs:[],pages:[],byKey:{}},state={open:new Set(),tab:'shop',zone:'Tất cả',cat:'Tất cả',bcat:'Tất cả',dkind:'Tất cả',dlatest:'0',q:''};
 const ZONES=['Tất cả','Zone 1','Zone 2','Zone 3','Chung'];
 const SCATS=['Tất cả','Cột - Vách','Dầm','Sàn','Bể nước PCCC'];
 
@@ -150,6 +153,9 @@ async function load(){
   await syncCheck(false);
   const [a,b]=await Promise.all([fetch('data/shop.json',{cache:'no-cache'}).then(r=>r.json()),fetch('data/bptc.json',{cache:'no-cache'}).then(r=>r.json())]);
   SHOP=a; BP=b;
+  try{DS=await fetch('data/design.json',{cache:'no-cache'}).then(r=>r.ok?r.json():{docs:[],pages:[]});}catch(e){DS={docs:[],pages:[]}}
+  DS.byKey={}; DS.docs.forEach(d=>{DS.byKey[d.key]=d;d.no=d.key.slice(0,6)}); DS.pages.forEach(p=>{p.src='d';p.n=norm((p.dw||'')+' '+p.t+' '+p.kind+' '+p.x);p.nt=norm((p.dw||'')+' '+p.t+' '+p.kind)});
+  if(DS.docs.length){const nw=[...DS.docs].sort((a,b)=>b.date.localeCompare(a.date))[0];state.open.add('d'+nw.key);}
   SHOP.forEach(p=>{p.n=norm(p.title+' '+p.kind+' '+p.cum+' '+p.txt);p.nt=norm(p.title+' '+p.kind)});
   BP.pages.forEach(p=>{p.n=norm(p.t||'')});
   const byKey={}; BP.docs.forEach(d=>{byKey[d.key]=d;d.np=0;d.nn=norm(d.title+' '+d.no+' '+d.cat+' '+d.file)}); BP.pages.forEach(p=>{byKey[p.k].np++});
@@ -160,7 +166,7 @@ async function load(){
 const V={tok:0,list:[],i:0,mode:'scroll',z:1,sc:1,x:0,y:0,iw:0,ih:0,fit:1,q:'',io:null};
 const CH={}, BLOB={}; let VER={h:{}};
 /* ảnh trang được gói theo cụm (.bin): shop 8 trang/gói, BPTC 12 trang/gói */
-function chunkOf(p){ return p.src==='b' ? {g:'b'+p.k,n:p.p,c:Math.floor((p.p-1)/12)} : {g:'s'+p.doc,n:p.page,c:Math.floor((p.page-1)/8)}; }
+function chunkOf(p){ if(p.src==='d') return {g:'d'+p.k,n:p.p,c:Math.floor((p.p-1)/8)}; return p.src==='b' ? {g:'b'+p.k,n:p.p,c:Math.floor((p.p-1)/12)} : {g:'s'+p.doc,n:p.page,c:Math.floor((p.page-1)/8)}; }
 function loadChunk(id){
   if(!CH[id]) CH[id]=fetch(`data/c/${id}.txt?h=${(VER.h||{})[id]||''}`).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.arrayBuffer();}).then(buf=>{
     const dv=new DataView(buf),n=dv.getUint32(0,true); let off=4+n*6; const m={};
@@ -173,8 +179,9 @@ async function imgUrl(p){
   const m=await loadChunk(g+'_'+c); if(!m[n]) throw new Error('thiếu trang');
   return BLOB[key]=URL.createObjectURL(m[n]);
 }
-const pageNo=p=>p.src==='b'?p.p:p.page;
+const pageNo=p=>(p.src==='b'||p.src==='d')?p.p:p.page;
 function meta(p){
+  if(p.src==='d'){const d=DS.byKey[p.k];return {title:`${d.no} · ${(p.dw?p.dw+' – ':'')+p.t}`,sub:`${d.title} · ${p.rev?'Rev '+p.rev+' · ':''}trang ${p.p}`,total:d.np};}
   if(p.src==='b'){const d=BP.byKey[p.k];return {title:`MOS.${d.no}${d.rev?'.'+d.rev:''} – ${d.title}`,sub:`${d.cat} · ${d.date.split('-').reverse().join('/')} · trang ${p.p}`,total:d.np};}
   return {title:p.title,sub:`${p.cum} · trang ${p.page}`,total:SHOP.filter(x=>x.doc===p.doc).length};
 }
@@ -182,14 +189,14 @@ function setHead(){
   const p=V.list[V.i]; if(!p) return; const m=meta(p);
   $('#vtt').textContent=m.title; $('#vts').textContent=m.sub; $('#vn').value=pageNo(p); $('#vm').textContent='/ '+m.total;
   $('#vp').disabled=V.i<=0; $('#vnx').disabled=V.i>=V.list.length-1;
-  history.replaceState(null,'',location.pathname+location.search+'#'+(p.src==='b'?'b-'+p.k+'-'+p.p:'s-'+p.doc+'-'+p.page));
+  history.replaceState(null,'',location.pathname+location.search+'#'+(p.src==='b'?'b-'+p.k+'-'+p.p:p.src==='d'?'d-'+p.k+'-'+p.p:'s-'+p.doc+'-'+p.page));
 }
 function setMode(){
   const sc=V.mode==='scroll'; $('#sc').style.display=sc?'block':'none'; $('#st').style.display=sc?'none':'block';
   $('#vmode').textContent=sc?'⤢ Từng trang':'▤ Cuộn dọc';
   const vq=$('#vq'); if(V.q){vq.classList.add('on');vq.innerHTML='Từ khoá: <b>'+esc(V.q)+'</b> · cuộn xuống hoặc dùng ‹ › để xem các trang khớp';} else vq.classList.remove('on');
 }
-function openViewer(list,i,q){ try{const p0=list[i];track('view',p0.src==='b'?'BPTC MOS.'+BP.byKey[p0.k].no:'Shop STR.'+p0.doc);}catch(e){} V.list=list;V.i=i;V.q=q||'';V.z=1;$('#v').classList.add('on');document.body.style.overflow='hidden';setMode();render2(true);}
+function openViewer(list,i,q){ try{const p0=list[i];track('view',p0.src==='b'?'BPTC MOS.'+BP.byKey[p0.k].no:p0.src==='d'?'Thiết kế '+p0.k+(p0.dw?' '+p0.dw:''):'Shop STR.'+p0.doc);}catch(e){} V.list=list;V.i=i;V.q=q||'';V.z=1;$('#v').classList.add('on');document.body.style.overflow='hidden';setMode();render2(true);}
 function closeViewer(){ $('#v').classList.remove('on');document.body.style.overflow='';if(V.io)V.io.disconnect();$('#sc').innerHTML='';if(location.hash)history.replaceState(null,'',location.pathname+location.search); }
 function render2(first){ setHead(); if(V.mode==='scroll'){buildScroll(first);} else showFit(); }
 /* --- chế độ cuộn dọc --- */
@@ -198,7 +205,7 @@ function buildScroll(){
   V.io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){V.io.unobserve(e.target);loadFig(e.target);}}),{root:sc,rootMargin:'200% 0px'});
   V.list.forEach((p,i)=>{
     const f=document.createElement('figure'); f.dataset.i=i; const pw=document.createElement('div'); pw.className='pw'; pw.style.aspectRatio=p.src==='b'?'0.707':'1.414';
-    const c=document.createElement('figcaption'); c.textContent=p.src==='b'?`MOS.${BP.byKey[p.k].no} · tr.${p.p}`:`${p.title} · tr.${p.page}`; f.appendChild(c); f.appendChild(pw); sc.appendChild(f); V.io.observe(f);
+    const c=document.createElement('figcaption'); c.textContent=p.src==='b'?`MOS.${BP.byKey[p.k].no} · tr.${p.p}`:p.src==='d'?`${DS.byKey[p.k].no} · ${(p.dw?p.dw+' – ':'')+p.t} · tr.${p.p}`:`${p.title} · tr.${p.page}`; f.appendChild(c); f.appendChild(pw); sc.appendChild(f); V.io.observe(f);
   });
   applyZ(); const f=sc.children[V.i]; if(f) sc.scrollTop=f.offsetTop;
 }
@@ -273,6 +280,29 @@ function renderShop(){
   }
   return h;
 }
+function renderDesign(){
+  if(!DS.docs.length) return '<div class="empty">Chưa có bản vẽ thiết kế.</div>';
+  const KINDS=['Tất cả',...new Set(DS.pages.map(p=>p.kind).filter(k=>!['Bìa','Danh mục bản vẽ'].includes(k)))];
+  const inK=p=>state.dkind==='Tất cả'||p.kind===state.dkind, inL=p=>state.dlatest!=='1'||p.lt;
+  const kc={}; KINDS.forEach(k=>kc[k]=DS.pages.filter(p=>(k==='Tất cả'||p.kind===k)&&inL(p)).length);
+  let h='<div class="lbl">Loại bản vẽ</div>'+chips(KINDS,state.dkind,'dkind',kc)+'<div class="lbl">Phiên bản</div><div class="chips"><button class="chip" data-k="dlatest" data-v="0" aria-pressed="'+(state.dlatest!=='1')+'">Tất cả các đợt phát hành</button><button class="chip" data-k="dlatest" data-v="1" aria-pressed="'+(state.dlatest==='1')+'">Chỉ bản mới nhất</button></div>';
+  h+='<div class="note">Sắp xếp theo ngày phát hành mới nhất (số đầu tên = năm-tháng-ngày: <b>YYMMDD</b>). Tờ có nhãn <b>Đã có bản mới hơn</b> đã bị thay bằng đợt phát hành sau.</div>';
+  const docs=[...DS.docs].sort((a,b)=>b.date.localeCompare(a.date)||b.key.localeCompare(a.key));
+  let any=false;
+  docs.forEach(d=>{
+    const arr=DS.pages.filter(p=>p.k===d.key&&inK(p)&&inL(p)); if(!arr.length) return; any=true;
+    const dk='d'+d.key, open=state.open.has(dk);
+    h+=`<section class="grp shop${open?' open':''}" data-doc="${dk}"><h3><span>${esc(d.no)} · ${esc(d.title)}</span><small>${arr.length} trang</small></h3>`;
+    h+=`<div class="sub">${esc(d.sub)}</div>`;
+    arr.forEach(p=>{
+      const old=!p.lt;
+      h+=`<button class="row${old?' old':''}" data-dopen="${p.k}|${p.p}"><span class="pg">tr.${p.p}</span><span class="t"><div>${p.dw?`<b>${esc(p.dw)}</b> · `:''}${esc(p.t)}</div><div class="k">${p.rev?'Rev '+esc(p.rev)+(p.rd?' · '+esc(p.rd):'')+' · ':''}${old?'<span class="oldb">Đã có bản mới hơn</span>':(p.dw?'<span class="newb">Mới nhất</span>':'')}</div></span></button>`;
+    });
+    h+='</section>';
+  });
+  if(!any) h+='<div class="empty">Không có bản vẽ cho lựa chọn này.</div>';
+  return h;
+}
 function renderBptc(){
   const cats=['Tất cả',...new Set(BP.docs.map(d=>d.cat))]; const cc={};
   cats.forEach(x=>cc[x]=BP.docs.filter(d=>x==='Tất cả'||d.cat===x).length);
@@ -297,36 +327,39 @@ function search(q){
   const score=(n,nt)=>{ let s=0; for(const t of toks){ const i=n.indexOf(t); if(i<0) return 0; s+=1+Math.min(5,n.split(t).length-1)*.2; if(nt&&nt.includes(t)) s+=6; } return s; };
   SHOP.forEach(p=>{ const s=score(p.n,p.nt); if(s) res.push({src:'s',p,s,raw:p.title+' | '+p.txt}); });
   BP.pages.forEach(p=>{ const d=BP.byKey[p.k]; const s=score(p.n+' '+d.nn,d.nn); if(s) res.push({src:'b',p:Object.assign({src:'b'},p),s,raw:p.t||'',d}); });
+  DS.pages.forEach(p=>{ const s=score(p.n,p.nt); if(s) res.push({src:'d',p,s:s*(p.lt?1:.9),raw:p.t+' | '+p.x}); });
   res.sort((a,b)=>b.s-a.s); return {toks,res};
 }
 function renderSearch(){
   const {toks,res}=search(state.q); RES=res;
   if(!toks.length) return '<div class="empty">Nhập từ khoá để tìm trong toàn bộ bản vẽ và biện pháp.</div>';
-  const nS=res.filter(r=>r.src==='s').length,nB=res.length-nS;
-  let h=`<div class="note"><b>${res.length}</b> trang khớp “${esc(state.q)}” — ${nS} trang shop drawing, ${nB} trang BPTC. Bấm để mở đúng trang.</div>`;
+  const nS=res.filter(r=>r.src==='s').length,nD=res.filter(r=>r.src==='d').length,nB=res.length-nS-nD;
+  let h=`<div class="note"><b>${res.length}</b> trang khớp “${esc(state.q)}” — ${nS} trang shop drawing, ${nB} trang BPTC, ${nD} trang bản vẽ thiết kế. Bấm để mở đúng trang.</div>`;
   if(!res.length) return h+'<div class="empty">Không thấy. Thử từ ngắn hơn hoặc bỏ dấu (ví dụ “mach ngung”, “HB4”, “C7F”).</div>';
   h+='<section class="grp res">'+res.slice(0,80).map((r,i)=>{
-    const t=r.src==='s'?r.p.title:`MOS.${r.d.no} – ${r.d.title} (tr.${r.p.p})`;
-    const where=r.src==='s'?`${r.p.cum} · tr.${r.p.page}`:`${r.d.cat} · ${r.d.date.split('-').reverse().join('/')}`;
-    return `<button class="row" data-res="${i}"><span class="t"><div><span class="src">${r.src==='s'?'SHOP':'BPTC'}</span>${esc(t)}</div><div class="k">${esc(where)}</div><div class="snip">${snippet(r.raw,toks)}</div></span></button>`;
+    const t=r.src==='s'?r.p.title:r.src==='d'?`${DS.byKey[r.p.k].no} · ${(r.p.dw?r.p.dw+' – ':'')+r.p.t} (tr.${r.p.p})`:`MOS.${r.d.no} – ${r.d.title} (tr.${r.p.p})`;
+    const where=r.src==='s'?`${r.p.cum} · tr.${r.p.page}`:r.src==='d'?`${DS.byKey[r.p.k].title}${r.p.lt?'':' · đã có bản mới hơn'}`:`${r.d.cat} · ${r.d.date.split('-').reverse().join('/')}`;
+    return `<button class="row" data-res="${i}"><span class="t"><div><span class="src">${r.src==='s'?'SHOP':r.src==='d'?'THIẾT KẾ':'BPTC'}</span>${esc(t)}</div><div class="k">${esc(where)}</div><div class="snip">${snippet(r.raw,toks)}</div></span></button>`;
   }).join('')+'</section>';
   if(res.length>80) h+=`<div class="note">Hiển thị 80 kết quả đầu. Thêm từ khoá để thu hẹp.</div>`;
   return h;
 }
 function render(){
   document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',String(!state.q&&b.dataset.t===state.tab)));
-  $('#app').innerHTML = state.q ? renderSearch() : (state.tab==='shop'?renderShop():renderBptc());
+  $('#app').innerHTML = state.q ? renderSearch() : (state.tab==='shop'?renderShop():state.tab==='design'?renderDesign():renderBptc());
   window.scrollTo(0,0);
 }
 $('#app').addEventListener('click',e=>{
   const gh=e.target.closest('.grp.shop>h3'); if(gh){const g=gh.parentNode;g.classList.toggle('open');g.classList.contains('open')?state.open.add(g.dataset.doc):state.open.delete(g.dataset.doc);return;}
-  const c=e.target.closest('.chip'); if(c){ state[c.dataset.k]=c.dataset.v; const y=scrollY; render(); scrollTo(0,y); return; }
+  const c=e.target.closest('.chip'); if(c){ state[c.dataset.k]=c.dataset.v; if(c.dataset.k==='dkind'||c.dataset.k==='dlatest') DS.docs.forEach(d=>state.open.add('d'+d.key)); const y=scrollY; render(); scrollTo(0,y); return; }
   const o=e.target.closest('[data-open]');
   if(o){ const grp=SHOP.filter(p=>p.doc===SHOP.find(x=>x.id===o.dataset.open).doc); const list=grp; openViewer(list,list.findIndex(p=>p.id===o.dataset.open)); return; }
+  const dop=e.target.closest('[data-dopen]');
+  if(dop){ const [k,pn]=dop.dataset.dopen.split('|'); const list=DS.pages.filter(p=>p.k===k).sort((a,b)=>a.p-b.p); openViewer(list,list.findIndex(p=>p.p===+pn)); return; }
   const bd=e.target.closest('[data-bdoc]');
   if(bd){ const list=BP.pages.filter(p=>p.k===bd.dataset.bdoc).map(p=>Object.assign({src:'b'},p)).sort((a,b)=>a.p-b.p); openViewer(list,0); return; }
   const r=e.target.closest('[data-res]');
-  if(r){ const it=RES[+r.dataset.res]; const list=RES.slice(0,80).map(x=>x.src==='b'?x.p:Object.assign({src:'s'},x.p)); openViewer(list,+r.dataset.res,state.q); return; }
+  if(r){ const it=RES[+r.dataset.res]; const list=RES.slice(0,80).map(x=>(x.src==='b'||x.src==='d')?x.p:Object.assign({src:'s'},x.p)); openViewer(list,+r.dataset.res,state.q); return; }
 });
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{if(b.dataset.t==='qr'){track('qr');location.href='qr/index.html?app=1';return;}state.tab=b.dataset.t;state.q='';$('#q').value='';render();});
 $('#sf').addEventListener('submit',e=>{e.preventDefault();state.q=$('#q').value.trim();render();$('#q').blur();});
@@ -335,6 +368,7 @@ function route(){
   render();
   const h=location.hash.slice(1); let m;
   if((m=h.match(/^s-(\d{3})-(\d+)$/))){ const list=SHOP.filter(p=>p.doc===m[1]); const i=list.findIndex(p=>p.page===+m[2]); if(i>=0){state.tab='shop';render();openViewer(list,i);} }
+  else if((m=h.match(/^d-([0-9a-z]+)-(\d+)$/))){ const list=DS.pages.filter(p=>p.k===m[1]).sort((a,b)=>a.p-b.p); const i=list.findIndex(p=>p.p===+m[2]); if(i>=0){state.tab='design';render();openViewer(list,i);} }
   else if((m=h.match(/^b-([0-9a-f]{10})-(\d+)$/))){ const list=BP.pages.filter(p=>p.k===m[1]).map(p=>Object.assign({src:'b'},p)).sort((a,b)=>a.p-b.p); const i=list.findIndex(p=>p.p===+m[2]); if(i>=0){state.tab='bptc';render();openViewer(list,i);} }
 }
 
