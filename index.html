@@ -104,7 +104,8 @@ mark{background:var(--hl);color:inherit;border-radius:3px;padding:0 1px}
   <form class="sb" id="sf" role="search"><input id="q" type="search" placeholder="Tìm từ khoá: HB4, P-C7F, Ø16a150, mạch ngừng…" autocomplete="off" enterkeyhint="search"><button type="submit">Tìm</button></form>
   <div class="tabs" role="tablist">
     <button class="tab" role="tab" data-t="shop">Shop drawing</button>
-    <button class="tab" role="tab" data-t="bptc">Biện pháp thi công</button>
+    <button class="tab" role="tab" data-t="bptc">BPTC</button>
+    <button class="tab" role="tab" data-t="qr">Tra thép QR</button>
   </div>
 </header>
 <div id="ins"><span id="inst">Cài app về điện thoại để mở nhanh, dùng cả khi mất mạng.</span><span><button id="insb">📲 Cài đặt</button> <button id="insx" aria-label="Để sau">✕</button></span></div>
@@ -313,7 +314,8 @@ function renderSearch(){
 }
 function render(){
   document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',String(!state.q&&b.dataset.t===state.tab)));
-  $('#app').innerHTML = state.q ? renderSearch() : (state.tab==='shop'?renderShop():renderBptc());
+  $('#app').innerHTML = state.q ? renderSearch() : (state.tab==='shop'?renderShop():state.tab==='qr'?'<iframe id="qrf" src="qr/index.html" allow="camera; fullscreen" title="Tra vị trí thép QR" style="width:100%;border:0;display:block;background:#f4f5f7"></iframe>':renderBptc());
+  if(state.tab==='qr'&&!state.q){ const f=$('#qrf'); const fit=()=>{f.style.height=Math.max(400,innerHeight-f.getBoundingClientRect().top)+'px';}; fit(); addEventListener('resize',fit); track('qr'); }
   window.scrollTo(0,0);
 }
 $('#app').addEventListener('click',e=>{
