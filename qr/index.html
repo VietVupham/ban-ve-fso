@@ -90,6 +90,7 @@ footer{font-size:12px;color:var(--mut);padding:4px 14px 18px;max-width:1280px;ma
 
 .sb{position:absolute;left:8px;top:8px;z-index:3;display:none;align-items:center;gap:6px;background:#0b2c35;color:#fff;text-decoration:none;border-radius:10px;padding:8px 12px;min-height:44px;font:700 13px/1.2 system-ui;box-shadow:0 1px 6px #0006}
 .sb small{display:block;font-weight:500;opacity:.8;font-size:11px}
+.alert{margin-top:8px;padding:9px 11px;border-radius:9px;background:#fff1d6;border:1px solid #f0c36d;color:#5b3a00;font-size:13px;line-height:1.4}
 .shoplink{display:block;margin-top:10px;padding:13px 12px;min-height:44px;background:#0b2c35;color:#fff!important;border-radius:10px;text-align:center;text-decoration:none;font-weight:700;font-size:14px}
 .pin i,.pin em{cursor:pointer}
 #vtabs,#map{scroll-margin-top:56px}
@@ -761,6 +762,13 @@ function show(member,tag){
   else if(inZ.length)badge='<span class="badge b-warn">'+inZ.length+'/'+segs.length+' đoạn thuộc Zone '+POUR+'</span>';
   else badge='<span class="badge b-no">Không thuộc Zone '+POUR+' (Zone '+[...new Set(segs.map(s=>s.z))].join(', ')+')</span>';
   let h='<h2>'+(M.title||member.replace(/^B1\./,''))+'</h2><div class="sub">'+batchLabel(M,tag,member)+'</div><div style="margin-top:8px">'+badge+'</div>';
+  if(tag&&tag.mark){
+    const known=!!D.tags[tag.raw],bar=tag.mark+' ('+tag.dia+', '+tag.qty+' cây, L='+fmt(tag.len)+' mm)';
+    const dd0=curDet&&curDet.id?D.details[curDet.id]:null;
+    if(!known)h+='<div class="alert">⚠ <b>QR chưa được cập nhật</b>: tem này chưa có trong dữ liệu QR của app (tem mới hơn dữ liệu). App chỉ đoán trang bản vẽ theo tên cấu kiện, nên có thể không đánh dấu được vị trí.</div>';
+    if(dd0&&!curDet.tier&&!dd0.design&&!dd0.scan)h+='<div class="alert">⚠ <b>Bản vẽ chưa được cập nhật</b> (hoặc bản vẽ không có thanh này): đã mở đúng tờ <b>'+dd0.t+'</b> nhưng không thấy thanh '+bar+' trên tờ đó, nên không đánh dấu được.</div>';
+    if(!segs.length&&!dd0)h+='<div class="alert">⚠ <b>Bản vẽ chưa có</b>: không tìm thấy tờ bản vẽ nào chứa cấu kiện này trong dữ liệu.</div>';
+  }
   if(curDet&&curDet.id){const dd=D.details[curDet.id],bb=curDet.pts[0];
     let dt=dd.t;
     if(dd.scan&&dd.m&&dd.m.length>2){const ck=/^P/i.test(cur&&cur.member||'')?colKey(cur.member):null;const mine=ck?dd.m.filter(x=>x===ck||x.startsWith(ck)):[];
