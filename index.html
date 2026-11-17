@@ -314,8 +314,7 @@ function renderSearch(){
 }
 function render(){
   document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',String(!state.q&&b.dataset.t===state.tab)));
-  $('#app').innerHTML = state.q ? renderSearch() : (state.tab==='shop'?renderShop():state.tab==='qr'?'<iframe id="qrf" src="qr/index.html" allow="camera; fullscreen" title="Tra vị trí thép QR" style="width:100%;border:0;display:block;background:#f4f5f7"></iframe>':renderBptc());
-  if(state.tab==='qr'&&!state.q){ const f=$('#qrf'); const fit=()=>{f.style.height=Math.max(400,innerHeight-f.getBoundingClientRect().top)+'px';}; fit(); addEventListener('resize',fit); track('qr'); }
+  $('#app').innerHTML = state.q ? renderSearch() : (state.tab==='shop'?renderShop():renderBptc());
   window.scrollTo(0,0);
 }
 $('#app').addEventListener('click',e=>{
@@ -328,7 +327,7 @@ $('#app').addEventListener('click',e=>{
   const r=e.target.closest('[data-res]');
   if(r){ const it=RES[+r.dataset.res]; const list=RES.slice(0,80).map(x=>x.src==='b'?x.p:Object.assign({src:'s'},x.p)); openViewer(list,+r.dataset.res,state.q); return; }
 });
-document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{state.tab=b.dataset.t;state.q='';$('#q').value='';render();});
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{if(b.dataset.t==='qr'){track('qr');location.href='qr/index.html?app=1';return;}state.tab=b.dataset.t;state.q='';$('#q').value='';render();});
 $('#sf').addEventListener('submit',e=>{e.preventDefault();state.q=$('#q').value.trim();render();$('#q').blur();});
 $('#q').addEventListener('input',()=>{ if(!$('#q').value.trim()&&state.q){state.q='';render();} });
 function route(){

@@ -90,6 +90,9 @@ footer{font-size:12px;color:var(--mut);padding:4px 14px 18px;max-width:1280px;ma
 </style>
 </head>
 <body>
+<div id="appbar" style="display:none;position:sticky;top:0;z-index:50;background:#0b2c35;padding:8px 12px"><a href="../" style="color:#fff;text-decoration:none;font-weight:600;font-size:14px">← Bản vẽ &amp; BPTC</a></div>
+<script>if(/[?&]app=1/.test(location.search))document.getElementById("appbar").style.display="block";</script>
+
 <header><h1>Tra vị trí thép gia công – Hầm B1 · Dầm, sàn, cột, vách</h1><small>KS Five Star Odyssey · SOL E&amp;C · Quét tem QR Povina → hiện vị trí trên mặt bằng dầm sàn</small></header>
 <main>
 <section>
@@ -273,7 +276,7 @@ function tapMode(){
 }
 
 /* ---------- camera trực tiếp (kiểu Zalo: khung vuông + vạch quét) ---------- */
-let stream=null,scanTimer=null,scanN=0,camTrack=null,camCaps={},drawing=false;
+let stream=null,scanTimer=null,scanN=0,camTrack=null,camCaps={},drawing=false,camGen=0;
 /* vẽ hình camera lên canvas nhỏ (không dùng thanh điều khiển video, không phóng to) */
 function setHint(t,done){const e=$('#shint');if(!e)return;e.innerHTML=(done?'':'<span class="spin"></span>')+t+(done||/…|ảnh|lấy nét hoặc/.test(t)?'':'…')}
 const fcv=document.createElement('canvas');   // khung hình mới nhất từ camera
@@ -289,10 +292,10 @@ async function startFrames(stream,tr){
     vidEl.addEventListener('webkitbeginfullscreen',noFs);vidEl.addEventListener('fullscreenchange',noFs);
     await vidEl.play();
   }
-  drawing=true;frameLoop();
+  drawing=true;frameLoop(camGen);
 }
-async function frameLoop(){
-  if(!drawing)return;
+async function frameLoop(g){
+  if(!drawing||g!==camGen)return;
   try{
     let src=null,w=0,h=0,bmp=null;
     if(ic){bmp=await ic.grabFrame();src=bmp;w=bmp.width;h=bmp.height}
@@ -309,7 +312,7 @@ async function frameLoop(){
       }
     }
   }catch(e){}
-  if(drawing)setTimeout(frameLoop,60);
+  if(drawing&&g===camGen)setTimeout(()=>frameLoop(g),60);
 }
 async function focusAt(e){
   const sc=$('#scan'),r=sc.getBoundingClientRect();
@@ -332,7 +335,9 @@ async function focusAt(e){
 }
 function beep(){try{const A=window.AudioContext||window.webkitAudioContext;const x=new A(),o=x.createOscillator(),g=x.createGain();o.frequency.value=1040;g.gain.value=.08;o.connect(g);g.connect(x.destination);o.start();setTimeout(()=>{o.stop();x.close()},110)}catch(e){}}
 async function startCam(){
+  stopCam();const myGen=++camGen;
   setMsg('Đang mở camera…');await loadLibs();
+  if(myGen!==camGen)return;
   if(!(bd||window.ZXing||window.jsQR)){setMsg('Chưa tải được bộ đọc QR (cần mạng). Hãy thử lại hoặc dùng nút chụp ảnh tem.',1);return}
   try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false})}
   catch(e){setMsg('Không mở được camera (hãy cho phép quyền camera, và mở trang bằng địa chỉ https). Dùng nút chụp ảnh tem bên dưới.',1);return}
@@ -354,10 +359,15 @@ async function startCam(){
   $('#scanwrap').style.display='block';$('#vf').classList.remove('ok');setMsg('');setHint('Đang quét');
   $('#sdbg').textContent='Bộ đọc: '+[bd&&'trình duyệt',window.ZXingWASM&&'ZXing-WASM',window.ZXing&&'ZXing',window.jsQR&&'jsQR'].filter(Boolean).join(' + ');
   scanN=0;const work=newCanvas(520,520),wx=work.getContext('2d',{willReadFrequently:true});
-  const done=t=>{clearTimeout(scanTimer);scanTimer=null;$('#vf').classList.add('ok');setHint('Đã quét ✓',true);
-    if(navigator.vibrate)navigator.vibrate(70);beep();setTimeout(()=>{stopCam();handleScan(t)},250)};
+  let finished=false;
+  const done=t=>{ if(finished||myGen!==camGen)return; finished=true; clearTimeout(scanTimer);scanTimer=null;
+    try{$('#vf').classList.add('ok');setHint('Đã quét ✓',true);}catch(e){}
+    try{if(navigator.vibrate)navigator.vibrate(70)}catch(e){}
+    try{beep()}catch(e){}
+    try{stopCam()}catch(e){ try{$('#scanwrap').style.display='none'}catch(e2){} }
+    setTimeout(()=>{ try{handleScan(t)}catch(e){ console.error(e); setMsg('Đã quét nhưng không hiển thị được kết quả: '+(e&&e.message||e)+'. Hãy quét lại.',1);} },30); };
   const loopTick=async()=>{
-    if(!stream)return;
+    if(!stream||myGen!==camGen||finished)return;
     try{
       if(v.videoWidth){
         scanN++;
@@ -380,9 +390,10 @@ async function startCam(){
         if(scanN%12===0)setHint(scanN>60?'Chưa thấy mã? Chạm vào khung để lấy nét hoặc bấm Chụp & tra':'Đang quét');
       }
     }catch(e){console.error(e)}
-    scanTimer=setTimeout(loopTick,200);
+    if(myGen===camGen&&!finished)scanTimer=setTimeout(loopTick,200);
   };
   scanTimer=setTimeout(loopTick,300);
+  const wd=setInterval(()=>{ if(myGen!==camGen){clearInterval(wd);return} if(finished){ try{stopCam()}catch(e){} clearInterval(wd);} },1500);
   $('#bSnap').onclick=async()=>{
     if(!v.videoWidth)return;
     clearTimeout(scanTimer);scanTimer=null;
@@ -398,7 +409,7 @@ async function startCam(){
     lastImg=c;stopCam();setMsg('Chưa tự thấy mã trong ảnh vừa chụp. Chạm vào mã QR để đọc đúng chỗ đó.',1);tapMode();
   };
 }
-function stopCam(){drawing=false;ic=null;if(vidEl){try{vidEl.pause();vidEl.srcObject=null}catch(e){}vidEl=null;}clearTimeout(scanTimer);clearInterval(scanTimer);scanTimer=null;camTrack=null;$('#scan').onclick=null;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}$('#scanwrap').style.display='none'}
+function stopCam(){camGen++;drawing=false;ic=null;if(vidEl){try{vidEl.pause();vidEl.srcObject=null}catch(e){}vidEl=null;}clearTimeout(scanTimer);clearInterval(scanTimer);scanTimer=null;camTrack=null;$('#scan').onclick=null;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}$('#scanwrap').style.display='none'}
 /* ---------- helpers ---------- */
 function setMsg(t,err){const m=$('#msg');m.textContent=t;m.className='msg'+(err?' err':'')}
 const fmt=n=>n.toLocaleString('vi-VN');
@@ -739,7 +750,7 @@ function zoomAt(f,cx,cy){const ns=Math.min(2.2,Math.max(MINS,S*f));f=ns/S;TX=cx-
 function setPlan(id){
   if(id===curPlan)return;curPlan=id;
   const P=id==='b'?{w:D.img.w,h:D.img.h,zone:D.zone,src:BEAM_SRC}:D.plans[id];
-  IMG={w:P.w,h:P.h};const pl=$('#plan');pl.src=P.src||P.img;pl.style.width=P.w+'px';pl.style.height=P.h+'px';setZone(P.zone);const isD=String(id).startsWith('d:');zi.style.visibility=isD?'hidden':'visible';$('#zZone').style.display=isD?'none':'';
+  IMG={w:P.w,h:P.h};const pl=$('#plan');const _ns=P.src||P.img;if(window._lastPlan!==_ns){window._lastPlan=_ns;pl.src=_ns}pl.style.width=P.w+'px';pl.style.height=P.h+'px';setZone(P.zone);const isD=String(id).startsWith('d:');zi.style.visibility=isD?'hidden':'visible';$('#zZone').style.display=isD?'none':'';
   stage.querySelectorAll('.pin').forEach(e=>e.remove());MINS=Math.min(map.clientWidth/IMG.w,map.clientHeight/IMG.h);initView();
 }
 function initView(){MINS=Math.min(map.clientWidth/IMG.w,map.clientHeight/IMG.h);S=MINS;TX=(map.clientWidth-IMG.w*S)/2;TY=(map.clientHeight-IMG.h*S)/2;apply()}
