@@ -90,7 +90,15 @@ footer{font-size:12px;color:var(--mut);padding:4px 14px 18px;max-width:1280px;ma
 
 .sb{position:absolute;left:8px;top:8px;z-index:3;display:none;align-items:center;gap:6px;background:#0b2c35;color:#fff;text-decoration:none;border-radius:10px;padding:8px 12px;min-height:44px;font:700 13px/1.2 system-ui;box-shadow:0 1px 6px #0006}
 .sb small{display:block;font-weight:500;opacity:.8;font-size:11px}
-.alert{margin-top:8px;padding:9px 11px;border-radius:9px;background:#fff1d6;border:1px solid #f0c36d;color:#5b3a00;font-size:13px;line-height:1.4}
+.brow{display:grid;grid-template-columns:1fr 1fr;gap:6px}.brow button,.brow .btn{min-height:38px;padding:8px 6px;font-size:14px}.brow #bCnt{grid-column:1/3;background:#0b6b4f;color:#fff}
+#cnt .ch{display:flex;justify-content:space-between;align-items:center;gap:8px}#cnt .mini{min-height:30px;padding:4px 10px;font-size:13px}
+.cstat{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}.cstat div{background:#f3f6fa;border-radius:8px;padding:6px;text-align:center}.cstat b{display:block;font-size:17px}.cstat span{font-size:11px;color:#667}
+.cdia{font-size:12.5px;margin:4px 0 8px}.cdia span{display:inline-block;background:#eef3f8;border-radius:6px;padding:2px 7px;margin:2px 3px 0 0}
+.cbtns{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}.cbtns button{min-height:38px;padding:6px;font-size:13.5px}
+#cnt .hist li{align-items:center;gap:6px}#cnt .hist li>span:first-child{flex:1;min-width:0}.nbad{background:#d33;color:#fff;border-radius:10px;padding:1px 8px;font-weight:700;font-size:12px}.nok{background:#e3f1e8;color:#176b3a;border-radius:10px;padding:1px 8px;font-weight:700;font-size:12px}
+.xbtn{background:none!important;color:#a33!important;min-height:26px!important;padding:0 6px!important;font-size:16px}
+#cpop{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:60;padding:16px}#cpop .box{background:#fff;border-radius:14px;padding:16px;width:100%;max-width:380px}#cpop input,#cpop select{width:100%;font:inherit;padding:11px;border:1px solid var(--line);border-radius:10px;margin:4px 0 10px}
+.pin.cn i{background:#e11d48}
 .shoplink{display:block;margin-top:10px;padding:13px 12px;min-height:44px;background:#0b2c35;color:#fff!important;border-radius:10px;text-align:center;text-decoration:none;font-weight:700;font-size:14px}
 .pin i,.pin em{cursor:pointer}
 #vtabs,#map{scroll-margin-top:56px}
@@ -104,9 +112,7 @@ footer{font-size:12px;color:var(--mut);padding:4px 14px 18px;max-width:1280px;ma
 <main>
 <section>
   <div class="card">
-    <button id="bCam" style="width:100%;font-size:17px;padding:16px 10px">🔍 Quét QR bằng camera</button>
-    <label class="btn sec" for="fPhoto" style="display:block;margin-top:8px">📷 Hoặc chụp / chọn ảnh tem</label>
-    
+    <div class="brow"><button id="bCam">🔍 Quét QR</button><label class="btn sec" for="fPhoto">📷 Ảnh tem</label><button id="bCnt" class="sec">📊 Kiểm đếm thép</button></div>
     <input id="fPhoto" type="file" accept="image/*" capture="environment" hidden>
     <div class="search"><input id="q" list="mlist" placeholder="Hoặc nhập mã cấu kiện: HB18, VB8…" autocomplete="off" autocapitalize="characters"><button id="bGo">Tìm</button></div>
     <datalist id="mlist"></datalist>
@@ -122,6 +128,14 @@ footer{font-size:12px;color:var(--mut);padding:4px 14px 18px;max-width:1280px;ma
     <div class="msg" style="margin-top:6px">Mẹo: giữ tem cách camera 15–25 cm cho mã QR chiếm khoảng 1/4 khung hình. Chưa tự bắt thì bấm “Chụp &amp; tra”.</div>
     <div id="msg" class="msg">Đang chuẩn bị bộ đọc QR…</div>
   </div>
+<div class="card" id="cnt" style="display:none;margin-top:10px">
+  <div class="ch"><b>📊 Kiểm đếm thép</b><button class="mini sec" id="cHide">Ẩn</button></div>
+  <div id="cInfo" class="sub"></div>
+  <div class="cstat" id="cStat"></div><div class="cdia" id="cDia"></div>
+  <div class="cbtns"><button id="cScan">🔍 Quét tiếp</button><button class="sec" id="cEnd">✔ Kết thúc phiên</button><button class="sec" id="cXlsx">📗 Xuất Excel</button><button class="sec" id="cPng">🖼 Ảnh bản vẽ highlight</button><button class="sec" id="cPdf" style="grid-column:1/3">📄 PDF bản vẽ highlight (tất cả mặt bằng)</button></div>
+  <b>Mã đã quét trong phiên</b><ul class="hist" id="cList"></ul>
+  <div style="margin-top:12px"><b>Lịch sử các phiên nhận thép</b></div><ul class="hist" id="cSess"></ul>
+</div>
   <div class="card" id="res" style="margin-top:10px"><div class="empty">Quét một tem thép để xem vị trí lắp đặt trên mặt bằng.</div></div>
   <div class="card" style="margin-top:10px"><b style="font-size:13px">Đã quét gần đây</b><ul class="hist" id="hist"><li class="empty">Chưa có</li></ul></div>
 </section>
@@ -134,6 +148,10 @@ footer{font-size:12px;color:var(--mut);padding:4px 14px 18px;max-width:1280px;ma
   </div>
 </section>
 </main>
+<div id="cpop"><div class="box"><b style="font-size:17px">Phiên nhận thép mới</b>
+<label class="sub" style="display:block;margin-top:10px">Tên người nhận thép</label><input id="cpName" placeholder="Nhập họ tên" autocomplete="name">
+<label class="sub">Vị trí nhận (cổng)</label><select id="cpGate"><option>Cổng 1</option><option>Cổng 2</option><option>Cổng 3</option><option>Cổng 4</option><option>Cổng 5</option></select>
+<div class="btns"><button class="sec" id="cpNo">Huỷ</button><button id="cpOk">Bắt đầu</button></div></div></div>
 <div id="tap"><div class="tapbox"><b>Chạm vào mã QR trong ảnh</b><canvas id="tapc"></canvas><div id="tapmsg" class="msg"></div><button id="tapx" class="sec">Đóng</button></div></div>
 <footer>Thép dầm: vị trí lấy theo nhãn dầm trên bản vẽ <i>FLOOR FRAMING LAYOUT – BASEMENT 1</i>. Thép sàn và mũ cột: vị trí lấy theo ghi chú thép trên bản vẽ shop thép sàn Zone 1.1–1.3 (khớp ký hiệu, số cây, đường kính, chiều dài với tem); điểm đánh dấu nằm tại ghi chú, không phải toàn bộ chiều dài thanh. Zone xác định tự động từ ảnh chia Zone nên có thể lệch ở sát ranh. Tem dầm chỉ ghi cấu kiện (ví dụ HB18) nên app hiện tất cả các đoạn của cấu kiện đó.</footer>
 
@@ -382,7 +400,12 @@ async function startCam(){
   $('#sdbg').textContent='Bộ đọc: '+[bd&&'trình duyệt',window.ZXingWASM&&'ZXing-WASM',window.ZXing&&'ZXing',window.jsQR&&'jsQR'].filter(Boolean).join(' + ');
   scanN=0;const WK=704,work=newCanvas(WK,WK),wx=work.getContext('2d',{willReadFrequently:true});
   let finished=false;
-  const done=t=>{ if(finished||myGen!==camGen)return; finished=true; clearTimeout(scanTimer);scanTimer=null;
+  let holding=false;
+  const done=t=>{ if(finished||myGen!==camGen)return;
+    if(CNT.on&&CNT.s&&!CNT.s.end){ finished=true;holding=true;
+      try{const P=parseQR((t||'').trim());if(P){cRecord(P);try{beep()}catch(e){}try{if(navigator.vibrate)navigator.vibrate(60)}catch(e){}$('#vf').classList.add('ok')}else setMsg('Mã QR không phải tem thép của dự án.',1)}catch(e){console.error(e)}
+      setTimeout(()=>{holding=false;if(myGen!==camGen)return;try{$('#vf').classList.remove('ok')}catch(e){}finished=false;scanTimer=setTimeout(loopTick,40)},1100);return}
+    finished=true; clearTimeout(scanTimer);scanTimer=null;
     try{$('#vf').classList.add('ok');setHint('Đã quét ✓',true);}catch(e){}
     try{if(navigator.vibrate)navigator.vibrate(70)}catch(e){}
     try{beep()}catch(e){}
@@ -415,7 +438,7 @@ async function startCam(){
     if(myGen===camGen&&!finished)scanTimer=setTimeout(loopTick,40);
   };
   scanTimer=setTimeout(loopTick,120);
-  const wd=setInterval(()=>{ if(myGen!==camGen){clearInterval(wd);return} if(finished){ try{stopCam()}catch(e){} clearInterval(wd);} },1500);
+  const wd=setInterval(()=>{ if(myGen!==camGen){clearInterval(wd);return} if(finished&&!holding){ try{stopCam()}catch(e){} clearInterval(wd);} },1500);
   $('#bSnap').onclick=async()=>{
     if(!v.videoWidth)return;
     clearTimeout(scanTimer);scanTimer=null;
@@ -458,6 +481,7 @@ function parseQR(t){
 function handleScan(text){
   const tag=parseQR((text||'').trim());
   if(!tag){setMsg('Mã QR này không phải tem thép của dự án: '+(text||'').slice(0,60),1);return}
+  if(CNT.on&&CNT.s&&!CNT.s.end){cRecord(tag);return}
   setMsg('Đã quét: '+tag.member.replace(/^B1\./,'')+' · ký hiệu '+tag.mark);
   show(tag.member,tag);
   hist.unshift({member:tag.member,mark:tag.mark,stt:tag.stt,raw:tag.raw});if(hist.length>8)hist.pop();renderHist();
@@ -762,13 +786,7 @@ function show(member,tag){
   else if(inZ.length)badge='<span class="badge b-warn">'+inZ.length+'/'+segs.length+' đoạn thuộc Zone '+POUR+'</span>';
   else badge='<span class="badge b-no">Không thuộc Zone '+POUR+' (Zone '+[...new Set(segs.map(s=>s.z))].join(', ')+')</span>';
   let h='<h2>'+(M.title||member.replace(/^B1\./,''))+'</h2><div class="sub">'+batchLabel(M,tag,member)+'</div><div style="margin-top:8px">'+badge+'</div>';
-  if(tag&&tag.mark){
-    const known=!!D.tags[tag.raw],bar=tag.mark+' ('+tag.dia+', '+tag.qty+' cây, L='+fmt(tag.len)+' mm)';
-    const dd0=curDet&&curDet.id?D.details[curDet.id]:null;
-    if(!known)h+='<div class="alert">⚠ <b>QR chưa được cập nhật</b>: tem này chưa có trong dữ liệu QR của app (tem mới hơn dữ liệu). App chỉ đoán trang bản vẽ theo tên cấu kiện, nên có thể không đánh dấu được vị trí.</div>';
-    if(dd0&&!curDet.tier&&!dd0.design&&!dd0.scan)h+='<div class="alert">⚠ <b>Bản vẽ chưa được cập nhật</b> (hoặc bản vẽ không có thanh này): đã mở đúng tờ <b>'+dd0.t+'</b> nhưng không thấy thanh '+bar+' trên tờ đó, nên không đánh dấu được.</div>';
-    if(!segs.length&&!dd0)h+='<div class="alert">⚠ <b>Bản vẽ chưa có</b>: không tìm thấy tờ bản vẽ nào chứa cấu kiện này trong dữ liệu.</div>';
-  }
+  if(tag&&tag.mark&&!segs.length&&!(curDet&&curDet.id))h+='<div class="sub" style="margin-top:6px">Không tìm thấy vị trí / bản vẽ của tem này.</div>';
   if(curDet&&curDet.id){const dd=D.details[curDet.id],bb=curDet.pts[0];
     let dt=dd.t;
     if(dd.scan&&dd.m&&dd.m.length>2){const ck=/^P/i.test(cur&&cur.member||'')?colKey(cur.member):null;const mine=ck?dd.m.filter(x=>x===ck||x.startsWith(ck)):[];
@@ -850,7 +868,7 @@ map.addEventListener('pointermove',e=>{
 /* chạm nhanh vào thanh đánh dấu -> nhảy sang trang bản vẽ Shop */
 let tapS=null;
 map.addEventListener('pointerdown',e=>{tapS=(APPM&&ptrs.size===0&&e.target.closest&&e.target.closest('.pin'))?{x:e.clientX,y:e.clientY,t:Date.now()}:null},true);
-map.addEventListener('pointerup',e=>{const t=tapS;tapS=null;if(t&&e.type==='pointerup'&&Math.hypot(e.clientX-t.x,e.clientY-t.y)<10&&Date.now()-t.t<700)openShop()},true);
+map.addEventListener('pointerup',e=>{const t=tapS;tapS=null;if(t&&e.type==='pointerup'&&Math.hypot(e.clientX-t.x,e.clientY-t.y)<10&&Date.now()-t.t<700&&!CNT.on)openShop()},true);
 map.addEventListener('wheel',e=>{e.preventDefault();const r=map.getBoundingClientRect();zoomAt(e.deltaY<0?1.2:1/1.2,e.clientX-r.left,e.clientY-r.top)},{passive:false});
 $('#zIn').onclick=()=>zoomAt(1.4,map.clientWidth/2,map.clientHeight/2);
 $('#zOut').onclick=()=>zoomAt(1/1.4,map.clientWidth/2,map.clientHeight/2);
@@ -874,6 +892,176 @@ function doSearch(){
 $('#bGo').onclick=doSearch;$('#q').onkeydown=e=>{if(e.key==='Enter')doSearch()};
 $('#bCam').onclick=startCam;$('#bStop').onclick=()=>{stopCam();setMsg('')};
 $('#tapx').onclick=()=>{$('#tap').style.display='none'};
+
+/* ================= KIỂM ĐẾM THÉP ================= */
+const CNT={on:false,s:null,plan:null};
+const SKEY='qr_sessions',AKEY='qr_active';
+function cLoad(){try{return JSON.parse(localStorage.getItem(SKEY)||'[]')}catch(e){return[]}}
+function cSave(){try{const all=cLoad(),i=all.findIndex(x=>x.id===CNT.s.id);if(i>=0)all[i]=CNT.s;else all.unshift(CNT.s);localStorage.setItem(SKEY,JSON.stringify(all))}catch(e){}}
+function cSetActive(id){try{if(id)localStorage.setItem(AKEY,id);else localStorage.removeItem(AKEY)}catch(e){}}
+function cT(ts){const d=new Date(ts),z=n=>String(n).padStart(2,'0');return z(d.getDate())+'/'+z(d.getMonth()+1)+' '+z(d.getHours())+':'+z(d.getMinutes())}
+function cEsc(x){return String(x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function cPos(raw){
+  const tag=parseQR(raw);if(!tag)return null;
+  let M=null;try{M=D.members[tag.member]||dynMember(tag.member,tag)}catch(e){}
+  const T=D.tags[raw],loc=T&&T.loc;
+  const segs=!T?[]:(loc?loc.pts.map(p=>({l:p.l,x:p.x,y:p.y,g:p.g,z:p.z})):((M&&M.segs)||[]));
+  const plan=String(loc?loc.p:((M&&M.plan)||'b'));
+  return {tag,plan,segs,known:!!T,loc,M};
+}
+function cGroups(s){ /* gộp theo mã: {raw,n,last,first} theo thứ tự quét gần nhất */
+  const m=new Map();(s.log||[]).forEach(e=>{const g=m.get(e.raw);if(g){g.n++;g.last=e.t}else m.set(e.raw,{raw:e.raw,n:1,first:e.t,last:e.t})});
+  return [...m.values()].sort((a,b)=>b.last-a.last);
+}
+function cStatus(g,P){return !P?'Mã không hợp lệ':(!P.known?'Không tìm thấy trong dữ liệu QR':(!P.segs.length?'Chưa có vị trí trên mặt bằng':(g.n>1?'Quét trùng':'OK')))}
+function cRecord(tag){
+  const s=CNT.s,now=Date.now(),lastE=s.log[s.log.length-1];
+  if(lastE&&lastE.raw===tag.raw&&now-lastE.t<3000)return false;
+  s.log.push({raw:tag.raw,t:now});cSave();
+  const g=cGroups(s).find(x=>x.raw===tag.raw);
+  setMsg((g.n>1?'⚠ Quét lại lần '+g.n+': ':'✔ Đã ghi: ')+tag.member.replace(/^B1\./,'')+' · ký hiệu '+tag.mark+' · D'+String(tag.dia).replace('D','')+' · '+tag.qty+' cây',g.n>1);
+  cRender(tag.raw);return true;
+}
+function cStats(s){
+  const gs=cGroups(s);let cay=0,kg=0,dup=0,nopos=0;const dia={};
+  gs.forEach(g=>{const P=cPos(g.raw);if(!P)return;const t=P.tag;cay+=+t.qty||0;kg+=+t.kg||0;if(g.n>1)dup+=g.n-1;if(!P.segs.length)nopos++;
+    const d='D'+String(t.dia).replace('D','');dia[d]=dia[d]||{c:0,k:0,t:0};dia[d].c+=+t.qty||0;dia[d].k+=+t.kg||0;dia[d].t++});
+  return {gs,tem:gs.length,luot:s.log.length,dup,nopos,cay,kg,dia};
+}
+function cRender(focusRaw){
+  const s=CNT.s;if(!s)return;
+  $('#cInfo').innerHTML='Người nhận: <b>'+cEsc(s.name)+'</b> · '+cEsc(s.gate)+' · bắt đầu '+cT(s.start)+(s.end?' · <b>đã kết thúc '+cT(s.end)+'</b>':'');
+  const st=cStats(s);
+  $('#cStat').innerHTML='<div><b>'+st.tem+'</b><span>Mã khác nhau</span></div><div><b>'+st.luot+'</b><span>Lượt quét</span></div><div><b style="color:'+(st.dup?'#d33':'inherit')+'">'+st.dup+'</b><span>Quét trùng</span></div><div><b>'+st.cay+'</b><span>Tổng số cây</span></div><div><b>'+Math.round(st.kg).toLocaleString('vi-VN')+'</b><span>Tổng kg</span></div><div><b>'+st.nopos+'</b><span>Chưa có vị trí</span></div>';
+  $('#cDia').innerHTML=Object.keys(st.dia).sort((a,b)=>+a.slice(1)-+b.slice(1)).map(d=>'<span><b>'+d+'</b>: '+st.dia[d].c+' cây · '+Math.round(st.dia[d].k).toLocaleString('vi-VN')+' kg</span>').join('');
+  $('#cList').innerHTML=st.gs.map(g=>{const P=cPos(g.raw);const t=P&&P.tag;
+    return '<li data-r="'+cEsc(g.raw)+'"><span><b>'+(t?cEsc(t.member.replace(/^B1\./,'')):'?')+'</b> · KH '+(t?cEsc(t.mark):'?')+' · D'+(t?String(t.dia).replace('D',''):'?')+' · '+(t?t.qty:'?')+' cây<br><small class="sub">'+cStatus(g,P)+' · '+cT(g.last)+'</small></span><span class="'+(g.n>1?'nbad':'nok')+'">×'+g.n+'</span><button class="xbtn" data-x="'+cEsc(g.raw)+'" title="Xoá mã này khỏi phiên">✕</button></li>'}).join('')||'<li class="empty">Chưa quét mã nào</li>';
+  $('#cList').querySelectorAll('li[data-r]').forEach(li=>li.onclick=e=>{if(e.target.closest('[data-x]'))return;cFocus(li.dataset.r)});
+  $('#cList').querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>{if(!confirm('Xoá mã này (và các lượt quét của nó) khỏi phiên?'))return;s.log=s.log.filter(e=>e.raw!==b.dataset.x);cSave();cRender()});
+  cSessList();
+  const P=focusRaw&&cPos(focusRaw);cDraw(P&&P.segs.length?P.plan:null,P&&P.segs.length?P:null);
+}
+function cSessList(){
+  const all=cLoad();
+  $('#cSess').innerHTML=all.map(x=>{const n=new Set(x.log.map(e=>e.raw)).size;return '<li data-id="'+x.id+'"><span><b>'+cEsc(x.name)+'</b> · '+cEsc(x.gate)+'<br><small class="sub">'+cT(x.start)+(x.end?'':' · đang mở')+' · '+n+' mã · '+x.log.length+' lượt</small></span><span><button class="mini sec" data-o="'+x.id+'">Mở</button> <button class="mini sec" data-e="'+x.id+'">Excel</button> <button class="xbtn" data-d="'+x.id+'">✕</button></span></li>'}).join('')||'<li class="empty">Chưa có phiên nào</li>';
+  const q=(a,f)=>$('#cSess').querySelectorAll('['+a+']').forEach(b=>b.onclick=e=>{e.stopPropagation();f(b.getAttribute(a))});
+  q('data-o',id=>{const x=cLoad().find(v=>v.id===id);if(x){CNT.s=x;CNT.plan=null;cSetActive(x.end?null:x.id);cRender()}});
+  q('data-e',id=>{const x=cLoad().find(v=>v.id===id);if(x)cXlsx(x)});
+  q('data-d',id=>{if(!confirm('Xoá phiên nhận thép này khỏi máy?'))return;try{localStorage.setItem(SKEY,JSON.stringify(cLoad().filter(v=>v.id!==id)))}catch(e){}if(CNT.s&&CNT.s.id===id){CNT.s=null;cSetActive(null);cShow(false);cOpen()}else cSessList()});
+}
+/* ---- mặt bằng highlight tích luỹ ---- */
+function cPlanData(){ /* plan -> Map(vị trí -> {l,n,x,y}) */
+  const out={};if(!CNT.s)return out;
+  cGroups(CNT.s).forEach(g=>{const P=cPos(g.raw);if(!P||!P.segs.length)return;const m=out[P.plan]=out[P.plan]||new Map();
+    P.segs.forEach(sg=>{const k=sg.x+','+sg.y;const o=m.get(k);if(o){o.n+=g.n}else m.set(k,{l:sg.l,x:sg.x,y:sg.y,n:g.n})})});
+  return out;
+}
+const PLNAME={b:'Mặt bằng dầm B1'};
+function cPlanName(id){if(PLNAME[id])return PLNAME[id];for(const r in D.tags){const l=D.tags[r].loc;if(l&&String(l.p)===id&&l.title)return PLNAME[id]=l.title}return PLNAME[id]=('Mặt bằng '+id)}
+function cDraw(prefer,P){
+  if(!CNT.on)return;
+  const pd=cPlanData(),ids=Object.keys(pd);
+  const t=$('#vtabs');t.style.display='flex';
+  if(!ids.length){t.innerHTML='<button class="on">Chưa có mã nào được đánh dấu</button>';stage.querySelectorAll('.pin').forEach(e=>e.remove());const b=document.getElementById('mapShop');if(b)b.style.display='none';return}
+  if(prefer)CNT.plan=prefer;
+  if(!CNT.plan||!pd[CNT.plan])CNT.plan=ids[0];
+  t.innerHTML=ids.map(id=>'<button data-cp="'+id+'" class="'+(id===CNT.plan?'on':'')+'">'+cEsc(cPlanName(id))+' ('+pd[id].size+')</button>').join('');
+  t.querySelectorAll('[data-cp]').forEach(b=>b.onclick=()=>{CNT.plan=b.dataset.cp;cDraw()});
+  const b=document.getElementById('mapShop');if(b)b.style.display='none';
+  setPlan(CNT.plan);
+  const segs=[...pd[CNT.plan].values()].map(o=>({l:o.l+(o.n>1?' ×'+o.n:''),x:o.x,y:o.y,z:undefined}));
+  drawPins(segs);stage.querySelectorAll('.pin').forEach(e=>e.classList.add('cn'));
+  if(P&&P.segs.length)fitPins(P.segs,260);else fitPins(segs,380);
+}
+function cFocus(raw){const P=cPos(raw);if(P&&P.segs.length){CNT.plan=P.plan;cDraw(P.plan,P)}else setMsg('Mã này chưa có vị trí trên mặt bằng, có trong file Excel.',1);if(window.innerWidth<900)goMap()}
+/* ---- phiên ---- */
+function cShow(on){CNT.on=on;$('#cnt').style.display=on?'block':'none';if(!on){stage.querySelectorAll('.pin').forEach(e=>e.classList.remove('cn'));if(typeof renderTabs==='function')renderTabs()}}
+function cOpen(){
+  if(!CNT.s){let x=null;try{const id=localStorage.getItem(AKEY);x=id&&cLoad().find(v=>v.id===id&&!v.end)}catch(e){}if(x)CNT.s=x}
+  if(!CNT.s){$('#cpName').value=localStorage.getItem('qr_lastname')||'';$('#cpop').style.display='flex';return}
+  cShow(true);cRender();$('#cnt').scrollIntoView({behavior:'smooth',block:'start'});
+}
+$('#bCnt').onclick=cOpen;
+$('#cpNo').onclick=()=>{$('#cpop').style.display='none'};
+$('#cpOk').onclick=()=>{
+  const n=$('#cpName').value.trim();if(!n){$('#cpName').focus();return}
+  try{localStorage.setItem('qr_lastname',n)}catch(e){}
+  CNT.s={id:'s'+Date.now(),name:n,gate:$('#cpGate').value,start:Date.now(),end:null,log:[]};CNT.plan=null;cSave();cSetActive(CNT.s.id);
+  $('#cpop').style.display='none';cShow(true);cRender();setMsg('Phiên kiểm đếm đã bắt đầu. Bấm Quét tiếp để quét tem.');
+};
+$('#cHide').onclick=()=>{cShow(false)};
+$('#cScan').onclick=()=>{if(CNT.s&&CNT.s.end){if(!confirm('Phiên đã kết thúc. Mở lại để quét tiếp?'))return;CNT.s.end=null;cSave();cSetActive(CNT.s.id);cRender()}startCam()};
+$('#cEnd').onclick=()=>{if(!CNT.s)return;if(CNT.s.end){CNT.s=null;cSetActive(null);cShow(false);cOpen();return}if(!confirm('Kết thúc phiên nhận thép này? (Lịch sử vẫn được lưu bên dưới)'))return;stopCam();CNT.s.end=Date.now();cSave();cSetActive(null);cRender();$('#cEnd').textContent='＋ Phiên mới'};
+/* ---- xuất Excel ---- */
+function cLoadScript(src){return new Promise((ok,no)=>{if(window.XLSX)return ok();const e=document.createElement('script');e.src=src;e.onload=ok;e.onerror=()=>no(new Error('Không tải được thư viện Excel (cần mạng lần đầu)'));document.head.appendChild(e)})}
+function cFile(s,ext){const n=(s.name||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'');const d=new Date(s.start),z=x=>String(x).padStart(2,'0');return 'KiemDemThep_'+n+'_'+d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+'-'+z(d.getHours())+z(d.getMinutes())+'.'+ext}
+async function cXlsx(s){
+  s=s||CNT.s;if(!s)return;
+  try{await cLoadScript('xlsx.mini.min.js')}catch(e){setMsg(e.message,1);return}
+  const st=cStats(s);
+  const rows=[['STT','Ký hiệu thanh','Cấu kiện','Đường kính','Số cây','Dài/cây (mm)','Khối lượng (kg)','Số lần quét','Trạng thái','Mặt bằng','Vị trí trên mặt bằng','Zone','Quét lần đầu','Quét lần cuối','Mã tem']];
+  st.gs.slice().sort((a,b)=>a.first-b.first).forEach((g,i)=>{const P=cPos(g.raw);const t=P&&P.tag;
+    rows.push([i+1,t?t.mark:'',t?t.member.replace(/^B1\./,''):'',t?'D'+String(t.dia).replace('D',''):'',t?+t.qty:'',t?+t.len:'',t?+t.kg:'',g.n,cStatus(g,P),P&&P.segs.length?cPlanName(P.plan):'',P?[...new Set(P.segs.map(x=>x.l))].join('; '):'',P?[...new Set(P.segs.map(x=>x.z).filter(Boolean))].join(', '):'',cT(g.first),cT(g.last),g.raw])});
+  const info=[['PHIẾU KIỂM ĐẾM THÉP NHẬN VỀ – FIVE STAR ODYSSEY'],['Người nhận',s.name],['Vị trí nhận',s.gate],['Bắt đầu',cT(s.start)],['Kết thúc',s.end?cT(s.end):'(chưa kết thúc)'],[],['Mã khác nhau',st.tem],['Tổng lượt quét',st.luot],['Quét trùng (lượt thừa)',st.dup],['Mã chưa có vị trí',st.nopos],['Tổng số cây',st.cay],['Tổng khối lượng (kg)',Math.round(st.kg*10)/10],[],['Đường kính','Số mã','Số cây','Khối lượng (kg)']];
+  Object.keys(st.dia).sort((a,b)=>+a.slice(1)-+b.slice(1)).forEach(d=>info.push([d,st.dia[d].t,st.dia[d].c,Math.round(st.dia[d].k*10)/10]));
+  const log=[['Thời gian','Cấu kiện','Ký hiệu','Mã tem']];
+  s.log.forEach(e=>{const t=parseQR(e.raw);log.push([cT(e.t),t?t.member.replace(/^B1\./,''):'',t?t.mark:'',e.raw])});
+  const wb=XLSX.utils.book_new();
+  const w1=XLSX.utils.aoa_to_sheet(info);w1['!cols']=[{wch:26},{wch:18},{wch:12},{wch:16}];
+  const w2=XLSX.utils.aoa_to_sheet(rows);w2['!cols']=[5,12,22,10,8,12,14,10,30,26,34,10,13,13,70].map(wch=>({wch}));
+  const w3=XLSX.utils.aoa_to_sheet(log);w3['!cols']=[{wch:13},{wch:22},{wch:10},{wch:70}];
+  XLSX.utils.book_append_sheet(wb,w1,'Tổng hợp');XLSX.utils.book_append_sheet(wb,w2,'Chi tiết cây thép');XLSX.utils.book_append_sheet(wb,w3,'Nhật ký quét');
+  XLSX.writeFile(wb,cFile(s,'xlsx'));setMsg('Đã xuất file Excel.');
+}
+$('#cXlsx').onclick=()=>cXlsx();
+/* ---- xuất bản vẽ highlight ---- */
+function cImg(src){return new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>no(new Error('Không tải được bản vẽ'));i.src=src})}
+async function cRenderPlan(id,pd){
+  const P=id==='b'?{w:D.img.w,h:D.img.h,src:BEAM_SRC}:D.plans[id];
+  const im=await cImg(P.src||P.img);
+  const k=Math.min(1,3200/Math.max(P.w,P.h)),W=Math.round(P.w*k),H=Math.round(P.h*k);
+  const hd=Math.round(70*Math.max(1,W/2000)),cv=document.createElement('canvas');cv.width=W;cv.height=H+hd;
+  const x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,W,H+hd);
+  x.fillStyle='#111';x.font='bold '+Math.round(hd*0.42)+'px sans-serif';x.textBaseline='middle';
+  x.fillText(cPlanName(id)+' – '+(CNT.s?CNT.s.name+' · '+CNT.s.gate+' · '+cT(CNT.s.start):''),16,hd/2);
+  x.drawImage(im,0,hd,W,H);
+  const r=Math.max(16,W/100),fs=Math.round(r*1.5);
+  x.font='bold '+fs+'px sans-serif';x.textBaseline='middle';x.lineJoin='round';
+  [...pd[id].values()].forEach(o=>{const px=o.x*k,py=hd+o.y*k;
+    x.beginPath();x.arc(px,py,r,0,7);x.fillStyle='rgba(225,29,72,.85)';x.fill();x.lineWidth=3;x.strokeStyle='#fff';x.stroke();
+    const t=o.l+(o.n>1?' ×'+o.n:'');x.lineWidth=fs/4;x.strokeStyle='#fff';x.strokeText(t,px+r+4,py);x.fillStyle='#b0102f';x.fillText(t,px+r+4,py)});
+  return cv;
+}
+function cDl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000)}
+$('#cPng').onclick=async()=>{
+  const pd=cPlanData();if(!CNT.plan||!pd[CNT.plan]){setMsg('Chưa có mã nào được đánh dấu trên mặt bằng để xuất.',1);return}
+  setMsg('Đang tạo ảnh bản vẽ…');await tick();
+  try{const cv=await cRenderPlan(CNT.plan,pd);cv.toBlob(b=>{cDl(b,cFile(CNT.s,'png').replace('.png','_MB'+CNT.plan+'.png'));setMsg('Đã xuất ảnh bản vẽ highlight.')},'image/png')}catch(e){setMsg('Lỗi tạo ảnh: '+e.message,1)}
+};
+function cPdfBuild(pages){ /* pages: [{w,h,jpg:Uint8Array}] -> Blob */
+  const enc=new TextEncoder(),parts=[],off=[];let len=0;
+  const put=d=>{const u=typeof d==='string'?enc.encode(d):d;parts.push(u);len+=u.length};
+  const obj=(n,body)=>{off[n]=len;put(n+' 0 obj\n');put(body);put('\nendobj\n')};
+  put('%PDF-1.4\n');
+  const N=pages.length,kids=pages.map((_,i)=>(3+i*3)+' 0 R').join(' ');
+  obj(1,'<</Type/Catalog/Pages 2 0 R>>');obj(2,'<</Type/Pages/Kids ['+kids+']/Count '+N+'>>');
+  pages.forEach((p,i)=>{const pg=3+i*3,im=pg+1,ct=pg+2,w=Math.round(p.w*0.75),h=Math.round(p.h*0.75);
+    obj(pg,'<</Type/Page/Parent 2 0 R/MediaBox [0 0 '+w+' '+h+']/Resources<</XObject<</I'+i+' '+im+' 0 R>>>>/Contents '+ct+' 0 R>>');
+    off[im]=len;put(im+' 0 obj\n<</Type/XObject/Subtype/Image/Width '+p.w+'/Height '+p.h+'/ColorSpace/DeviceRGB/BitsPerComponent 8/Filter/DCTDecode/Length '+p.jpg.length+'>>\nstream\n');put(p.jpg);put('\nendstream\nendobj\n');
+    const c='q '+w+' 0 0 '+h+' 0 0 cm /I'+i+' Do Q';obj(ct,'<</Length '+c.length+'>>\nstream\n'+c+'\nendstream')});
+  const total=3+N*3,xr=len;let t='xref\n0 '+total+'\n0000000000 65535 f \n';
+  for(let i=1;i<total;i++)t+=String(off[i]).padStart(10,'0')+' 00000 n \n';
+  put(t+'trailer\n<</Size '+total+'/Root 1 0 R>>\nstartxref\n'+xr+'\n%%EOF');
+  return new Blob(parts,{type:'application/pdf'});
+}
+$('#cPdf').onclick=async()=>{
+  const pd=cPlanData(),ids=Object.keys(pd);if(!ids.length){setMsg('Chưa có mã nào được đánh dấu trên mặt bằng để xuất.',1);return}
+  setMsg('Đang tạo PDF ('+ids.length+' mặt bằng)…');await tick();
+  try{const pages=[];for(const id of ids){const cv=await cRenderPlan(id,pd);const u=cv.toDataURL('image/jpeg',0.85).split(',')[1],bin=atob(u),a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);pages.push({w:cv.width,h:cv.height,jpg:a});await tick()}
+    cDl(cPdfBuild(pages),cFile(CNT.s,'pdf'));setMsg('Đã xuất PDF bản vẽ highlight.')}catch(e){setMsg('Lỗi tạo PDF: '+e.message,1)}
+};
+/* tự mở lại phiên đang dở khi vào lại app */
+try{const id=localStorage.getItem(AKEY);const x=id&&cLoad().find(v=>v.id===id&&!v.end);if(x){CNT.s=x;setTimeout(()=>{cShow(true);cRender()},500)}}catch(e){}
 window.handleScan=handleScan;
 initView();
 if(/[?&]back=1/.test(location.search)){setTimeout(()=>{try{const r=sessionStorage.getItem('qr_last');const T=r&&parseQR(r);if(T)show(T.member,T)}catch(e){}},400)}
