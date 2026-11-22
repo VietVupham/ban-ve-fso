@@ -402,6 +402,7 @@ function render(){
   document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',String(!state.q&&b.dataset.t===state.tab)));
   $('#app').innerHTML = state.q ? renderSearch() : (state.tab==='shop'?renderShop():state.tab==='design'?renderDesign():state.tab==='order'?renderOrder():renderBptc());
   window.scrollTo(0,0);
+  try{const t=document.querySelector('.tab[aria-selected=true]');if(t)t.scrollIntoView({inline:'center',block:'nearest'});}catch(e){}
 }
 $('#app').addEventListener('click',e=>{
   const dl=e.target.closest('[data-dl]'); if(dl){e.stopPropagation();const [t,k]=dl.dataset.dl.split('|');dlDoc(t,k);return;}
