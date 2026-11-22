@@ -15,3 +15,5 @@ Là bản sao của repo riêng `VietVupham/thep-qr-b1` (index.html + thư mục
 - Shop: trang có nhãn "CẬP NHẬT THIẾT KẾ" được xoá nhãn khỏi ảnh và gắn cờ `up` (app hiện ghi chú nhỏ "check lại thiết kế cập nhật").
 - Đặt hàng thép: mỗi đợt `ĐH-xxx` có mặt bằng theo dõi (pdf), tổng hợp khối lượng, bảng theo Ø, danh sách cấu kiện (từ xlsx) -> `data/order.json` + chunk `o<id>_0`. Tab "Đặt hàng thép".
 - Tăng `V` trong sw.js mỗi lần triển khai.
+- Shop có 2 phiên bản hiển thị: `ver:'t'` (file thực hiện, chunk `s<doc>_n`, doc `008`) và `ver:'d'` (bản scan duyệt, chunk `s<doc>d_n`, doc `008d`). QR luôn trỏ `#s-<doc>-<trang>` = bản thực hiện. BPTC: tab thực hiện = tài liệu có `st` (đang trình), tab duyệt = còn lại.
+- Tải PDF được dựng ngay trên máy từ ảnh các trang (không lưu PDF gốc trên repo).
