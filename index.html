@@ -53,7 +53,8 @@ main{max-width:980px;margin:0 auto;padding:12px 12px calc(40px + env(safe-area-i
 .empty{padding:30px 10px;text-align:center;color:var(--mute)}
 mark{background:var(--hl);color:inherit;border-radius:3px;padding:0 1px}
 .res .snip{font-size:13px;color:var(--mute);margin-top:2px;overflow-wrap:anywhere}
-.row.old{opacity:.62}.oldb{color:#b45309;font-weight:600}.newb{color:#15803d;font-weight:600}.grp>.sub{padding:6px 12px;font-size:12.5px;color:var(--mute)}
+.upn2{font-size:11px;color:#9a5b00;font-weight:600}.oplan{display:block;width:100%;text-align:left;border:0;border-radius:10px;background:#0b2c35;color:#fff;font-weight:700;font-size:14.5px;padding:13px 12px;margin:8px 0}.oplan small{font-weight:400;opacity:.8}.ordb{padding:6px 12px 12px}.ot{width:100%;border-collapse:collapse;font-size:13.5px;margin:4px 0}.ot td{padding:5px 6px;border-top:1px solid var(--line)}.ot td:last-child{text-align:right;white-space:nowrap}.ot tr.tot td{font-weight:700;background:var(--accbg)}.ot tr.sub td:first-child{padding-left:20px;color:var(--mute)}.ot tr.hd td{font-size:12px;color:var(--mute);font-weight:600;border-top:0}.omem>summary{cursor:pointer;font-weight:700;margin:10px 0 6px}.oq{width:100%;box-sizing:border-box;font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:9px;margin:4px 0 8px}.om>summary{cursor:pointer;display:flex;justify-content:space-between;gap:8px;padding:7px 4px;border-top:1px solid var(--line);font-size:13.5px}.om>summary span{color:var(--mute);font-size:12.5px;white-space:nowrap}
+.stb{font-size:11px;background:#fff1d6;color:#9a5b00;border-radius:5px;padding:0 6px;margin-left:6px;font-weight:700}.row.old{opacity:.62}.oldb{color:#b45309;font-weight:600}.newb{color:#15803d;font-weight:600}.grp>.sub{padding:6px 12px;font-size:12.5px;color:var(--mute)}
 .src{display:inline-block;font-size:11px;border-radius:5px;padding:0 6px;margin-right:6px;background:var(--accbg);color:var(--acc);font-weight:700}
 .note{font-size:13px;color:var(--mute);margin:6px 2px 12px}
 /* viewer */
@@ -76,7 +77,7 @@ mark{background:var(--hl);color:inherit;border-radius:3px;padding:0 1px}
 #sc figure{margin:0 auto 8px;position:relative;min-width:0}
 #sc .pw{position:relative;background:#fff;width:100%}
 #sc figure img{display:block;width:100%;height:auto}
-#sc figcaption{display:block;color:#9fb8c0;font-size:11px;padding:3px 6px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#sc .upn{color:#ffcf6b;font-weight:700}#sc figcaption{display:block;color:#9fb8c0;font-size:11px;padding:3px 6px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #sc .err{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#444;padding:20px;text-align:center}
 .vb button#vmode{font-size:13px}
 #vq{padding:6px 10px;background:#13363f;font-size:12.5px;display:none;overflow-x:auto;white-space:nowrap}
@@ -107,6 +108,7 @@ mark{background:var(--hl);color:inherit;border-radius:3px;padding:0 1px}
   <div class="tabs" role="tablist">
     <button class="tab" role="tab" data-t="shop">Shop drawing</button>
     <button class="tab" role="tab" data-t="bptc">BPTC</button>
+    <button class="tab" role="tab" data-t="order">Đặt hàng thép</button>
     <button class="tab" role="tab" data-t="qr">Tra thép QR</button>
     <button class="tab" role="tab" data-t="design">Bản vẽ thiết kế</button>
   </div>
@@ -145,14 +147,15 @@ function normChar(c){
 function norm(s){ let o=''; for(const ch of s) o+= ch.charCodeAt(0)<128 ? (ch>='A'&&ch<='Z'?ch.toLowerCase():ch) : normChar(ch).slice(0,ch.length); return o; }
 function normQ(q){ return norm(q).replace(/(?:\bphi|\bfi|\bf)\s*(?=\d)/g,'ø').replace(/\s+/g,' ').trim(); }
 
-let SHOP=[],BP={docs:[],pages:[]},DS={docs:[],pages:[],byKey:{}},state={open:new Set(),tab:'shop',zone:'Tất cả',cat:'Tất cả',bcat:'Tất cả',dkind:'Tất cả',dlatest:'0',q:''};
+let ORD=[],SHOP=[],BP={docs:[],pages:[]},DS={docs:[],pages:[],byKey:{}},state={open:new Set(),oopen:new Set(),tab:'shop',zone:'Tất cả',cat:'Tất cả',bcat:'Tất cả',dkind:'Tất cả',dlatest:'0',q:''};
 const ZONES=['Tất cả','Zone 1','Zone 2','Zone 3','Chung'];
-const SCATS=['Tất cả','Cột - Vách','Dầm','Sàn','Bể nước PCCC'];
+const SCATS=['Tất cả','Cột - Vách','Dầm','Sàn','Bể nước PCCC','Capping beam'];
 
 async function load(){
   await syncCheck(false);
   const [a,b]=await Promise.all([fetch('data/shop.json',{cache:'no-cache'}).then(r=>r.json()),fetch('data/bptc.json',{cache:'no-cache'}).then(r=>r.json())]);
   SHOP=a; BP=b;
+  try{ORD=await fetch('data/order.json',{cache:'no-cache'}).then(r=>r.ok?r.json():[]);}catch(e){ORD=[]}
   try{DS=await fetch('data/design.json',{cache:'no-cache'}).then(r=>r.ok?r.json():{docs:[],pages:[]});}catch(e){DS={docs:[],pages:[]}}
   DS.byKey={}; DS.docs.forEach(d=>{DS.byKey[d.key]=d;d.no=d.key.slice(0,6)}); DS.pages.forEach(p=>{p.src='d';p.n=norm((p.dw||'')+' '+p.t+' '+p.kind+' '+p.x);p.nt=norm((p.dw||'')+' '+p.t+' '+p.kind)});
   if(DS.docs.length){const nw=[...DS.docs].sort((a,b)=>b.date.localeCompare(a.date))[0];state.open.add('d'+nw.key);}
@@ -166,7 +169,7 @@ async function load(){
 const V={tok:0,list:[],i:0,mode:'scroll',z:1,sc:1,x:0,y:0,iw:0,ih:0,fit:1,q:'',io:null};
 const CH={}, BLOB={}; let VER={h:{}};
 /* ảnh trang được gói theo cụm (.bin): shop 8 trang/gói, BPTC 12 trang/gói */
-function chunkOf(p){ if(p.src==='d') return {g:'d'+p.k,n:p.p,c:Math.floor((p.p-1)/8)}; return p.src==='b' ? {g:'b'+p.k,n:p.p,c:Math.floor((p.p-1)/12)} : {g:'s'+p.doc,n:p.page,c:Math.floor((p.page-1)/8)}; }
+function chunkOf(p){ if(p.src==='o') return {g:'o'+p.id,n:p.p,c:0}; if(p.src==='d') return {g:'d'+p.k,n:p.p,c:Math.floor((p.p-1)/8)}; return p.src==='b' ? {g:'b'+p.k,n:p.p,c:Math.floor((p.p-1)/12)} : {g:'s'+p.doc,n:p.page,c:Math.floor((p.page-1)/8)}; }
 function loadChunk(id){
   if(!CH[id]) CH[id]=fetch(`data/c/${id}.txt?h=${(VER.h||{})[id]||''}`).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.arrayBuffer();}).then(buf=>{
     const dv=new DataView(buf),n=dv.getUint32(0,true); let off=4+n*6; const m={};
@@ -179,24 +182,25 @@ async function imgUrl(p){
   const m=await loadChunk(g+'_'+c); if(!m[n]) throw new Error('thiếu trang');
   return BLOB[key]=URL.createObjectURL(m[n]);
 }
-const pageNo=p=>(p.src==='b'||p.src==='d')?p.p:p.page;
+const pageNo=p=>(p.src==='b'||p.src==='d'||p.src==='o')?p.p:p.page;
 function meta(p){
+  if(p.src==='o'){const o=ORD.find(x=>x.id===p.id);return {title:`${o.code} – Mặt bằng theo dõi đặt hàng`,sub:`${o.title} · ${o.date.split('-').reverse().join('/')}`,total:o.np};}
   if(p.src==='d'){const d=DS.byKey[p.k];return {title:`${d.no} · ${(p.dw?p.dw+' – ':'')+p.t}`,sub:`${d.title} · ${p.rev?'Rev '+p.rev+' · ':''}trang ${p.p}`,total:d.np};}
-  if(p.src==='b'){const d=BP.byKey[p.k];return {title:`MOS.${d.no}${d.rev?'.'+d.rev:''} – ${d.title}`,sub:`${d.cat} · ${d.date.split('-').reverse().join('/')} · trang ${p.p}`,total:d.np};}
-  return {title:p.title,sub:`${p.cum} · trang ${p.page}`,total:SHOP.filter(x=>x.doc===p.doc).length};
+  if(p.src==='b'){const d=BP.byKey[p.k];return {title:(d.no?`MOS.${d.no}${d.rev?'.'+d.rev:''} – `:'')+d.title,sub:`${d.st?d.st+' · ':''}${d.cat} · ${d.date.split('-').reverse().join('/')} · trang ${p.p}`,total:d.np};}
+  return {title:p.title,sub:`${p.cum}${p.st?' · '+p.st:''} · trang ${p.page}${p.up?' · ⚠ check lại thiết kế cập nhật':''}`,total:SHOP.filter(x=>x.doc===p.doc).length};
 }
 function setHead(){
   const p=V.list[V.i]; if(!p) return; const m=meta(p);
   $('#vtt').textContent=m.title; $('#vts').textContent=m.sub; $('#vn').value=pageNo(p); $('#vm').textContent='/ '+m.total;
   $('#vp').disabled=V.i<=0; $('#vnx').disabled=V.i>=V.list.length-1;
-  history.replaceState(null,'',location.pathname+location.search+'#'+(p.src==='b'?'b-'+p.k+'-'+p.p:p.src==='d'?'d-'+p.k+'-'+p.p:'s-'+p.doc+'-'+p.page));
+  history.replaceState(null,'',location.pathname+location.search+'#'+(p.src==='o'?'o-'+p.id+'-'+p.p:p.src==='b'?'b-'+p.k+'-'+p.p:p.src==='d'?'d-'+p.k+'-'+p.p:'s-'+p.doc+'-'+p.page));
 }
 function setMode(){
   const sc=V.mode==='scroll'; $('#sc').style.display=sc?'block':'none'; $('#st').style.display=sc?'none':'block';
   $('#vmode').textContent=sc?'⤢ Từng trang':'▤ Cuộn dọc';
   const vq=$('#vq'); if(V.q){vq.classList.add('on');vq.innerHTML='Từ khoá: <b>'+esc(V.q)+'</b> · cuộn xuống hoặc dùng ‹ › để xem các trang khớp';} else vq.classList.remove('on');
 }
-function openViewer(list,i,q){ try{const p0=list[i];track('view',p0.src==='b'?'BPTC MOS.'+BP.byKey[p0.k].no:p0.src==='d'?'Thiết kế '+p0.k+(p0.dw?' '+p0.dw:''):'Shop STR.'+p0.doc);}catch(e){} V.list=list;V.i=i;V.q=q||'';V.z=1;$('#v').classList.add('on');document.body.style.overflow='hidden';setMode();render2(true);}
+function openViewer(list,i,q){ try{const p0=list[i];track('view',p0.src==='o'?'Đặt hàng '+p0.id:p0.src==='b'?'BPTC MOS.'+BP.byKey[p0.k].no:p0.src==='d'?'Thiết kế '+p0.k+(p0.dw?' '+p0.dw:''):'Shop STR.'+p0.doc);}catch(e){} V.list=list;V.i=i;V.q=q||'';V.z=1;$('#v').classList.add('on');document.body.style.overflow='hidden';setMode();render2(true);}
 function closeViewer(){ $('#v').classList.remove('on');document.body.style.overflow='';if(V.io)V.io.disconnect();$('#sc').innerHTML='';if(location.hash)history.replaceState(null,'',location.pathname+location.search); }
 function render2(first){ setHead(); if(V.mode==='scroll'){buildScroll(first);} else showFit(); }
 /* --- chế độ cuộn dọc --- */
@@ -205,7 +209,7 @@ function buildScroll(){
   V.io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){V.io.unobserve(e.target);loadFig(e.target);}}),{root:sc,rootMargin:'200% 0px'});
   V.list.forEach((p,i)=>{
     const f=document.createElement('figure'); f.dataset.i=i; const pw=document.createElement('div'); pw.className='pw'; pw.style.aspectRatio=p.src==='b'?'0.707':'1.414';
-    const c=document.createElement('figcaption'); c.textContent=p.src==='b'?`MOS.${BP.byKey[p.k].no} · tr.${p.p}`:p.src==='d'?`${DS.byKey[p.k].no} · ${(p.dw?p.dw+' – ':'')+p.t} · tr.${p.p}`:`${p.title} · tr.${p.page}`; f.appendChild(c); f.appendChild(pw); sc.appendChild(f); V.io.observe(f);
+    const c=document.createElement('figcaption'); c.textContent=p.src==='o'?`${meta(p).title} · tr.${p.p}`:p.src==='b'?`${BP.byKey[p.k].no?'MOS.'+BP.byKey[p.k].no:BP.byKey[p.k].title.slice(0,40)} · tr.${p.p}`:p.src==='d'?`${DS.byKey[p.k].no} · ${(p.dw?p.dw+' – ':'')+p.t} · tr.${p.p}`:`${p.title} · tr.${p.page}`; if(p.up){const u=document.createElement('span');u.className='upn';u.textContent=' ⚠ Check lại thiết kế cập nhật';c.appendChild(u);} f.appendChild(c); f.appendChild(pw); sc.appendChild(f); V.io.observe(f);
   });
   applyZ(); const f=sc.children[V.i]; if(f) sc.scrollTop=f.offsetTop;
 }
@@ -269,12 +273,12 @@ function renderShop(){
   if(!list.length) h+='<div class="empty">Chưa có bản vẽ cho lựa chọn này.</div>';
   const groups=new Map(); list.forEach(p=>{ if(!groups.has(p.doc))groups.set(p.doc,[]); groups.get(p.doc).push(p); });
   for(const [doc,arr] of groups){
-    h+=`<section class="grp shop${(groups.size===1||state.open.has(doc))?' open':''}" data-doc="${doc}"><h3><span>${esc(arr[0].cum)}</span><small>${esc('STR.'+doc)} · ${arr.length} trang</small></h3>`;
+    h+=`<section class="grp shop${(groups.size===1||state.open.has(doc))?' open':''}" data-doc="${doc}"><h3><span>${esc(arr[0].cum)}</span><small>${esc('STR.'+doc)}${arr[0].st?' · '+arr[0].st:''} · ${arr.length} trang</small></h3>`;
     let lastKind=null;
     arr.forEach(p=>{
       const front=['Bìa','Danh mục bản vẽ'].includes(p.kind);
       if(p.kind!==lastKind){ if(!front) h+=`<div class="sub">${esc(p.kind)}</div>`; lastKind=p.kind; }
-      h+=`<button class="row" data-open="${p.id}"><span class="pg">tr.${p.page}</span><span class="t"><div>${esc(p.title)}</div></span></button>`;
+      h+=`<button class="row" data-open="${p.id}"><span class="pg">tr.${p.page}</span><span class="t"><div>${esc(p.title)}${p.up?' <span class="upn2">⚠ check lại thiết kế cập nhật</span>':''}</div></span></button>`;
     });
     h+='</section>';
   }
@@ -303,13 +307,32 @@ function renderDesign(){
   if(!any) h+='<div class="empty">Không có bản vẽ cho lựa chọn này.</div>';
   return h;
 }
+
+function fk(n){return Number(n).toLocaleString('vi-VN',{maximumFractionDigits:1})}
+function renderOrder(){
+  if(!ORD.length) return '<div class="empty">Chưa có đợt đặt hàng thép.</div>';
+  const L=[...ORD].sort((a,b)=>b.id.localeCompare(a.id));
+  let h='<div class="note">Mỗi đợt đặt hàng gồm <b>mặt bằng theo dõi</b> (màu hồng = đã đặt đợt này, vàng = chưa đặt hàng) và thông tin đặt hàng. Đợt mới nhất nằm trên cùng.</div>';
+  L.forEach((o,i)=>{
+    const open=i===0||state.oopen.has(o.id);
+    h+=`<section class="grp ord" data-ord="${o.id}"><h3><span>${esc(o.code)} · ${esc(o.title)}</span><small>${o.date.split('-').reverse().join('/')}${o.kg?' · '+fk(o.kg)+' kg':''}</small></h3><div class="ordb">`;
+    if(o.np) h+=`<button class="oplan" data-oplan="${o.id}">🗺 Xem mặt bằng theo dõi ${esc(o.code)} <small>(chạm để phóng to)</small></button>`;
+    if(o.sum&&o.sum.length){ h+='<div class="lbl">Khối lượng đặt hàng</div><table class="ot">'+o.sum.map(r=>`<tr class="${r.l.startsWith('TỔNG')?'tot':r.sub?'sub':''}"><td>${esc(r.l)}</td><td>${fk(r.kg)} kg</td></tr>`).join('')+'</table>'; }
+    if(o.dia&&o.dia.length){ const tk=o.dia.reduce((a,x)=>a+x.kg,0); h+='<div class="lbl">Theo đường kính (bảng thống kê cắt thép)</div><table class="ot"><tr class="hd"><td>Đường kính</td><td>Chiều dài</td><td>Khối lượng</td></tr>'+o.dia.map(x=>`<tr><td>Ø${x.d}</td><td>${fk(x.m)} m</td><td>${fk(x.kg)} kg</td></tr>`).join('')+`<tr class="tot"><td>Cộng</td><td></td><td>${fk(tk)} kg</td></tr></table>`; }
+    if(o.mem&&o.mem.length){
+      h+=`<details class="omem"${open?' open':''}><summary>Danh sách cấu kiện đặt hàng (${o.mem.length})</summary><input class="oq" data-oid="${o.id}" type="search" placeholder="Lọc cấu kiện: HB12, VB3…" autocomplete="off"><div class="omn">`+o.mem.map(m=>`<details class="om" data-n="${esc(norm(m.ck))}"><summary><b>${esc(m.ck)}</b><span>${m.n} thanh · ${fk(m.m)} m</span></summary><table class="ot"><tr class="hd"><td>Số hiệu</td><td>Ø</td><td>SL</td><td>Dài (mm)</td></tr>${m.b.map(b=>`<tr><td>${esc(b[0])}</td><td>${b[1]}</td><td>${b[2]}</td><td>${fk(b[3])}</td></tr>`).join('')}</table></details>`).join('')+'</div></details>';
+    }
+    h+='</div></section>';
+  });
+  return h;
+}
 function renderBptc(){
   const cats=['Tất cả',...new Set(BP.docs.map(d=>d.cat))]; const cc={};
   cats.forEach(x=>cc[x]=BP.docs.filter(d=>x==='Tất cả'||d.cat===x).length);
   let h='<div class="lbl">Nhóm biện pháp</div>'+chips(cats,state.bcat,'bcat',cc);
   const L=BP.docs.filter(d=>state.bcat==='Tất cả'||d.cat===state.bcat).sort((a,b)=>b.date.localeCompare(a.date));
   h+='<div class="note">Sắp xếp theo ngày trình mới nhất. Bấm vào một biện pháp để xem toàn bộ các trang.</div>';
-  h+='<section class="grp">'+L.map(d=>`<button class="row" data-bdoc="${d.key}"><span class="doc"><span class="badge">${d.no}</span><span class="t"><div>${esc(d.title)}${d.rev?`<span class="rev">${d.rev}</span>`:''}</div><div class="k">${esc(d.cat)} · ${d.date.split('-').reverse().join('/')} · ${d.np} trang</div></span></span></button>`).join('')+'</section>';
+  h+='<section class="grp">'+L.map(d=>`<button class="row" data-bdoc="${d.key}"><span class="doc"><span class="badge">${d.no||"–"}</span><span class="t"><div>${esc(d.title)}${d.rev?`<span class="rev">${d.rev}</span>`:''}${d.st?`<span class="stb">${d.st}</span>`:''}</div><div class="k">${esc(d.cat)} · ${d.date.split('-').reverse().join('/')} · ${d.np} trang</div></span></span></button>`).join('')+'</section>';
   return h;
 }
 function snippet(raw,toks){
@@ -346,7 +369,7 @@ function renderSearch(){
 }
 function render(){
   document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',String(!state.q&&b.dataset.t===state.tab)));
-  $('#app').innerHTML = state.q ? renderSearch() : (state.tab==='shop'?renderShop():state.tab==='design'?renderDesign():renderBptc());
+  $('#app').innerHTML = state.q ? renderSearch() : (state.tab==='shop'?renderShop():state.tab==='design'?renderDesign():state.tab==='order'?renderOrder():renderBptc());
   window.scrollTo(0,0);
 }
 $('#app').addEventListener('click',e=>{
@@ -358,16 +381,19 @@ $('#app').addEventListener('click',e=>{
   if(dop){ const [k,pn]=dop.dataset.dopen.split('|'); const list=DS.pages.filter(p=>p.k===k).sort((a,b)=>a.p-b.p); openViewer(list,list.findIndex(p=>p.p===+pn)); return; }
   const bd=e.target.closest('[data-bdoc]');
   if(bd){ const list=BP.pages.filter(p=>p.k===bd.dataset.bdoc).map(p=>Object.assign({src:'b'},p)).sort((a,b)=>a.p-b.p); openViewer(list,0); return; }
+  const op=e.target.closest('[data-oplan]'); if(op){ const o=ORD.find(x=>x.id===op.dataset.oplan); const list=[]; for(let i=1;i<=o.np;i++)list.push({src:'o',id:o.id,p:i}); openViewer(list,0); return; }
   const r=e.target.closest('[data-res]');
   if(r){ const it=RES[+r.dataset.res]; const list=RES.slice(0,80).map(x=>(x.src==='b'||x.src==='d')?x.p:Object.assign({src:'s'},x.p)); openViewer(list,+r.dataset.res,state.q); return; }
 });
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{if(b.dataset.t==='qr'){track('qr');location.href='qr/index.html?app=1';return;}state.tab=b.dataset.t;state.q='';$('#q').value='';render();});
+$('#app').addEventListener('input',e=>{const q=e.target.closest('.oq'); if(!q)return; const t=normQ(q.value); q.parentNode.querySelectorAll('details.om').forEach(d=>{d.style.display=(!t||d.dataset.n.includes(t))?'':'none';});});
 $('#sf').addEventListener('submit',e=>{e.preventDefault();state.q=$('#q').value.trim();render();$('#q').blur();});
 $('#q').addEventListener('input',()=>{ if(!$('#q').value.trim()&&state.q){state.q='';render();} });
 function route(){
   render();
   const h=location.hash.slice(1); let m;
   if((m=h.match(/^s-(\d{3})-(\d+)$/))){ const list=SHOP.filter(p=>p.doc===m[1]); const i=list.findIndex(p=>p.page===+m[2]); if(i>=0){state.tab='shop';render();openViewer(list,i);} }
+  else if((m=h.match(/^o-(\d+)-(\d+)$/))){ const o=ORD.find(x=>x.id===m[1]); if(o&&o.np){ const list=[]; for(let i=1;i<=o.np;i++)list.push({src:'o',id:o.id,p:i}); state.tab='order';render();openViewer(list,Math.min(+m[2],o.np)-1);} }
   else if((m=h.match(/^d-([0-9a-z]+)-(\d+)$/))){ const list=DS.pages.filter(p=>p.k===m[1]).sort((a,b)=>a.p-b.p); const i=list.findIndex(p=>p.p===+m[2]); if(i>=0){state.tab='design';render();openViewer(list,i);} }
   else if((m=h.match(/^b-([0-9a-f]{10})-(\d+)$/))){ const list=BP.pages.filter(p=>p.k===m[1]).map(p=>Object.assign({src:'b'},p)).sort((a,b)=>a.p-b.p); const i=list.findIndex(p=>p.p===+m[2]); if(i>=0){state.tab='bptc';render();openViewer(list,i);} }
 }

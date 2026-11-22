@@ -8,3 +8,10 @@ Chỉ gói có hash đổi mới được tải lại.
 
 ## Tab "Tra thép QR"
 Là bản sao của repo riêng `VietVupham/thep-qr-b1` (index.html + thư mục d/) đặt trong `qr/`. Khi app QR được cập nhật (đẩy vào thep-qr-b1), chép lại index.html và d/ sang `qr/` rồi push repo này. App nhúng bằng iframe (cho phép camera).
+
+## Quy tắc bổ sung (từ 11/2026): file thực hiện vs file duyệt
+- Thư mục stage thêm: `07. QR tìm thép/4-2-1--FILE-THUC-HIEN` (shop thực hiện), `4-2-2--DUYET/SDW.STR` (shop scan duyệt), `01. BPTC/CHUA DUYET` (BPTC thực hiện), `01. BPTC/DUYET`, `07…/03. Đặt hàng thép/ĐH-xxx`.
+- File duyệt là chuẩn. So sánh file thực hiện với bản scan duyệt (khớp nội dung/số trang): KHỚP -> dùng PDF thực hiện (nét hơn); KHÔNG KHỚP -> dùng bản scan duyệt. File thực hiện không có trong thư mục duyệt = "Đang trình" (cờ `st`), vẫn đưa lên.
+- Shop: trang có nhãn "CẬP NHẬT THIẾT KẾ" được xoá nhãn khỏi ảnh và gắn cờ `up` (app hiện ghi chú nhỏ "check lại thiết kế cập nhật").
+- Đặt hàng thép: mỗi đợt `ĐH-xxx` có mặt bằng theo dõi (pdf), tổng hợp khối lượng, bảng theo Ø, danh sách cấu kiện (từ xlsx) -> `data/order.json` + chunk `o<id>_0`. Tab "Đặt hàng thép".
+- Tăng `V` trong sw.js mỗi lần triển khai.
