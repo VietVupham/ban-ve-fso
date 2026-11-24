@@ -113,7 +113,7 @@ body.dro #dr{transform:none}body.dro #drb{opacity:1;pointer-events:auto}
 .dlb{display:flex;justify-content:flex-end;padding:6px 10px;border-bottom:1px solid var(--line)}
 .dlb button,.dlbtn{border:1px solid var(--acc);background:transparent;color:var(--acc);border-radius:8px;font-weight:600;font-size:13px;padding:6px 10px}
 #vdl{flex:none;border:0;border-radius:8px;background:#e2f2fc;color:#0b2c35;font-weight:700;font-size:13px;padding:9px 11px}
-body.dept .tabs,body.dept #sf{display:none}body.dept .hr{margin-bottom:0}.soon{text-align:center;padding:60px 20px;color:var(--mute)}.soon .ic{font-size:48px}.soon h2{color:var(--fg,inherit);margin:10px 0 6px}
+body.dept .tabs,body.dept #sf{display:none}body.dept .hr{margin-bottom:0}body.dept #app{padding:0}#tdf{display:block;width:100%;height:calc(100dvh - 78px);border:0;background:#fff}.tdo{position:fixed;right:10px;bottom:10px;background:rgba(15,58,71,.92);color:#fff;border-radius:20px;padding:8px 13px;font-size:12.5px;text-decoration:none;z-index:5}.soon{text-align:center;padding:60px 20px;color:var(--mute)}.soon .ic{font-size:48px}.soon h2{color:var(--fg,inherit);margin:10px 0 6px}
 </style>
 <link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-180.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
 </head>
@@ -134,6 +134,7 @@ body.dept .tabs,body.dept #sf{display:none}body.dept .hr{margin-bottom:0}.soon{t
 <div id="drb"></div>
 <nav id="dr" aria-label="Bộ phận"><div class="dh"><b>Bộ phận công trường</b><span>Five Star Odyssey</span></div>
 <button class="di" data-dept="sb"><span class="ic">📐</span><span><b>Shop / BPTC</b><small>Bản vẽ shop, biện pháp thi công, đặt hàng thép</small></span></button>
+<button class="di" data-dept="td"><span class="ic">📝</span><span><b>Thiết Kế</b><small>Sổ theo dõi thiết kế: bản vẽ, thay đổi, RFI</small></span></button>
 <button class="di" data-dept="qa"><span class="ic">✅</span><span><b>QA/QC</b><small>Sắp ra mắt</small></span></button>
 <button class="di" data-dept="qs"><span class="ic">📊</span><span><b>QS</b><small>Sắp ra mắt</small></span></button>
 </nav>
@@ -397,6 +398,7 @@ function renderSearch(){
 }
 function render(){
   document.body.classList.toggle('dept',state.dept!=='sb');
+  if(state.dept==='td'){$('#app').innerHTML='<iframe id="tdf" title="Sổ theo dõi thiết kế" src="https://vietvupham.github.io/so-thiet-ke/?web=1" allow="clipboard-write; fullscreen"></iframe><a class="tdo" href="https://vietvupham.github.io/so-thiet-ke/?web=1" target="_blank" rel="noopener">Mở toàn màn hình ↗</a>';document.querySelectorAll('.di').forEach(b=>b.setAttribute('aria-current',String(b.dataset.dept===state.dept)));return;}
   if(state.dept!=='sb'){const n={qa:['✅','QA/QC'],qs:['📊','QS']}[state.dept];$('#app').innerHTML=`<div class="soon"><div class="ic">${n[0]}</div><h2>Bộ phận ${n[1]}</h2><div>Mục này đang được xây dựng. Sẽ cập nhật sau khi bạn gửi nội dung cho bộ phận này.</div></div>`;document.querySelectorAll('.di').forEach(b=>b.setAttribute('aria-current',String(b.dataset.dept===state.dept)));return;}
   document.querySelectorAll('.di').forEach(b=>b.setAttribute('aria-current',String(b.dataset.dept===state.dept)));
   document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',String(!state.q&&b.dataset.t===state.tab)));
