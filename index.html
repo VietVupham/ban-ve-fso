@@ -113,7 +113,7 @@ body.dro #dr{transform:none}body.dro #drb{opacity:1;pointer-events:auto}
 .dlb{display:flex;justify-content:flex-end;padding:6px 10px;border-bottom:1px solid var(--line)}
 .dlb button,.dlbtn{border:1px solid var(--acc);background:transparent;color:var(--acc);border-radius:8px;font-weight:600;font-size:13px;padding:6px 10px}
 #vdl{flex:none;border:0;border-radius:8px;background:#e2f2fc;color:#0b2c35;font-weight:700;font-size:13px;padding:9px 11px}
-body.dept .tabs,body.dept #sf{display:none}body.dept .hr{margin-bottom:0}body.dept #app{padding:0}#tdf{display:block;width:100%;height:calc(100dvh - 78px);border:0;background:#fff}.tdo{position:fixed;right:10px;bottom:10px;background:rgba(15,58,71,.92);color:#fff;border-radius:20px;padding:8px 13px;font-size:12.5px;text-decoration:none;z-index:5}.soon{text-align:center;padding:60px 20px;color:var(--mute)}.soon .ic{font-size:48px}.soon h2{color:var(--fg,inherit);margin:10px 0 6px}
+body.dept .tabs,body.dept #sf{display:none}body.dept .hr{margin-bottom:0}body.dept #app{padding:0}#tdf{display:block;width:100%;height:calc(100dvh - 78px);border:0;background:#fff}.tdo{position:fixed;right:10px;bottom:10px;background:rgba(15,58,71,.92);color:#fff;border-radius:20px;padding:8px 13px;font-size:12.5px;text-decoration:none;z-index:5}.gd{padding:14px 12px 40px}.gd h2{margin:4px 0}.gs{color:var(--mute);margin:0 0 12px;font-size:13.5px}.gi{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:8px;overflow:hidden}.gi summary{padding:13px 14px;font-weight:700;font-size:15px;cursor:pointer;list-style:none}.gi summary::-webkit-details-marker{display:none}.gi div{padding:0 14px 12px;font-size:14px;line-height:1.55}.gi div p{margin:6px 0}.gi ul{margin:6px 0;padding-left:20px}.gi li{margin:3px 0}.soon{text-align:center;padding:60px 20px;color:var(--mute)}.soon .ic{font-size:48px}.soon h2{color:var(--fg,inherit);margin:10px 0 6px}
 </style>
 <link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-180.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
 </head>
@@ -137,6 +137,7 @@ body.dept .tabs,body.dept #sf{display:none}body.dept .hr{margin-bottom:0}body.de
 <button class="di" data-dept="sb"><span class="ic">📐</span><span><b>Shop / BPTC</b><small>Bản vẽ shop, biện pháp thi công, đặt hàng thép</small></span></button>
 <button class="di" data-dept="qa"><span class="ic">✅</span><span><b>QA/QC</b><small>Sắp ra mắt</small></span></button>
 <button class="di" data-dept="qs"><span class="ic">📊</span><span><b>QS</b><small>Sắp ra mắt</small></span></button>
+<button class="di" data-dept="hd" style="border-top:6px solid var(--line)"><span class="ic">📖</span><span><b>Hướng dẫn sử dụng</b><small>Cách dùng từng tab và bộ phận</small></span></button>
 </nav>
 <main id="app"><div class="empty">Đang tải dữ liệu…</div></main>
 
@@ -396,8 +397,24 @@ function renderSearch(){
   if(res.length>80) h+=`<div class="note">Hiển thị 80 kết quả đầu. Thêm từ khoá để thu hẹp.</div>`;
   return h;
 }
+
+const GUIDE=[
+['📲 Cài app và dùng khi mất mạng',`<p><b>iPhone:</b> mở link bằng <b>Safari</b> → nút Chia sẻ → <i>Thêm vào Màn hình chính</i>. Mở từ Zalo/Facebook thì không cài được, hãy chọn "Mở bằng Safari".</p><p><b>Android:</b> mở bằng Chrome → bấm <i>📲 Cài đặt</i> ở thanh trên (hoặc menu ⋮ → Cài đặt ứng dụng).</p><p>Sau khi cài, app mở nhanh như ứng dụng thường. Những trang bản vẽ đã mở một lần sẽ được lưu lại, <b>xem được cả khi mất mạng</b> (vùng hầm sóng yếu).</p>`],
+['🔄 Cập nhật tự động',`<p>Khi có mạng, app <b>tự kiểm tra bản vẽ/BPTC mới</b>: lúc mở app, lúc quay lại app, khi có mạng trở lại và định kỳ vài phút. Có dữ liệu mới thì app tự tải và làm mới, không cần làm gì thêm.</p><p>Dòng "Dữ liệu cập nhật: giờ ngày" ở thanh trên cho biết lần cập nhật gần nhất. Nút <b>⟳ Đồng bộ</b> dùng khi muốn kiểm tra ngay lập tức.</p>`],
+['☰ Menu bộ phận',`<p>Bấm nút <b>☰</b> bên trái ô tìm kiếm, bảng bộ phận trượt ra:</p><ul><li><b>Thiết Kế</b>: sổ theo dõi thiết kế (bộ bản vẽ phát hành, bản thay đổi, RFI).</li><li><b>Shop / BPTC</b>: bản vẽ shop, biện pháp thi công, tra thép QR, bản vẽ thiết kế, đặt hàng thép.</li><li><b>QA/QC</b>, <b>QS</b>: đang xây dựng, sẽ cập nhật sau.</li><li><b>Hướng dẫn sử dụng</b>: trang này.</li></ul>`],
+['🔎 Tìm kiếm',`<p>Gõ từ khoá vào ô tìm kiếm rồi bấm <b>Tìm</b>: số hiệu bản vẽ, tên cấu kiện (ví dụ <i>HB1A</i>, <i>C12</i>), tên hạng mục, số MOS... App tìm trong cả nội dung chữ của bản vẽ và BPTC.</p><p>Mỗi kết quả có nhãn nguồn (SHOP · THỰC HIỆN, SHOP · DUYỆT, BPTC, THIẾT KẾ). Bấm vào kết quả để mở đúng trang.</p>`],
+['📐 Tab Shop drawing',`<p>Có hai tab con:</p><ul><li><b>File thực hiện</b>: file PDF thực hiện của shop, nét hơn, dùng tra cứu hằng ngày. Bộ chưa có bản duyệt ghi <b>Đang trình</b>.</li><li><b>Bản duyệt</b>: bản scan có ký duyệt của TVGS/CĐT (mờ hơn, có thêm phiếu phê duyệt ở đầu bộ).</li></ul><p>Chọn <b>Khu vực thi công</b> (Zone) và <b>Hạng mục</b> (cột vách, dầm, sàn...) để lọc. Bộ mới nhất nằm trên cùng; bấm tên bộ để mở danh sách trang, bấm một dòng để xem bản vẽ. Trang có dòng <b>⚠ check lại thiết kế cập nhật</b> nghĩa là thiết kế đã có cập nhật sau khi shop phát hành, cần đối chiếu bản thiết kế mới nhất. Nút <b>⬇ Tải PDF cả bộ</b> tạo file PDF về máy.</p><p><b>Lưu ý:</b> khi thi công, ưu tiên theo bản đã duyệt; file thực hiện chỉ để xem rõ hơn.</p>`],
+['📋 Tab BPTC',`<p>Biện pháp thi công, cũng chia <b>File thực hiện</b> (đang trình) và <b>Bản duyệt</b>. Lọc theo nhóm biện pháp, mới nhất nằm trên. Bấm một biện pháp để xem toàn bộ trang; nút <b>⬇ PDF</b> ở mỗi dòng để tải về máy.</p>`],
+['🏷️ Tab Tra thép QR',`<p>Quét mã QR dán trên cấu kiện để xem vị trí và chi tiết thép, và mở nhanh bản vẽ shop (file thực hiện) tương ứng. Có chế độ <b>kiểm đếm thép</b> để lưu phiên đếm và xuất file. Cần cho phép camera khi app hỏi.</p>`],
+['🏗️ Tab Bản vẽ thiết kế',`<p>Các đợt bản vẽ thiết kế do tư vấn phát hành, mới nhất ở trên. Lọc theo loại bản vẽ và phiên bản; chọn "Chỉ bản mới nhất" để bỏ các tờ đã bị thay thế.</p>`],
+['🧱 Tab Đặt hàng thép',`<p>Mỗi đợt đặt hàng (ví dụ ĐH-008) là một dòng, bấm để mở: <b>mặt bằng theo dõi</b> (hồng = đặt đợt này, vàng = chưa đặt), bảng khối lượng, khối lượng theo đường kính và danh sách cấu kiện kèm thanh thép. Bấm nút mặt bằng để xem và phóng to.</p>`],
+['📄 Khi đang xem bản vẽ',`<ul><li><b>‹ ›</b> hoặc nhập số trang để chuyển trang; <b>⤢</b> đổi giữa cuộn dọc và từng trang.</li><li><b>＋ －</b> phóng to, thu nhỏ; <b>⟲</b> về vừa khung.</li><li><b>⬇ PDF</b> ở thanh trên: tải cả bộ về máy.</li><li><b>✕</b> để đóng và quay lại danh sách.</li></ul>`],
+['❓ Gặp lỗi?',`<p>Trang không tải: kiểm tra mạng rồi cuộn lại. Thấy dữ liệu cũ: bấm <b>⟳ Đồng bộ</b>, nếu vẫn cũ thì đóng hẳn app rồi mở lại. Góp ý/báo lỗi: liên hệ người quản lý app (Phạm Viết Vũ).</p>`]
+];
+function guideHtml(){return '<div class="gd"><h2>Hướng dẫn sử dụng</h2><p class="gs">Bấm vào từng mục để xem. Dành cho anh em mới dùng app.</p>'+GUIDE.map((g,i)=>`<details class="gi"${i<2?' open':''}><summary>${g[0]}</summary><div>${g[1]}</div></details>`).join('')+'</div>';}
 function render(){
   document.body.classList.toggle('dept',state.dept!=='sb');
+  if(state.dept==='hd'){$('#app').innerHTML=guideHtml();document.querySelectorAll('.di').forEach(b=>b.setAttribute('aria-current',String(b.dataset.dept===state.dept)));return;}
   if(state.dept==='td'){$('#app').innerHTML='<iframe id="tdf" title="Sổ theo dõi thiết kế" src="https://vietvupham.github.io/so-thiet-ke/?web=1" allow="clipboard-write; fullscreen"></iframe><a class="tdo" href="https://vietvupham.github.io/so-thiet-ke/?web=1" target="_blank" rel="noopener">Mở toàn màn hình ↗</a>';document.querySelectorAll('.di').forEach(b=>b.setAttribute('aria-current',String(b.dataset.dept===state.dept)));return;}
   if(state.dept!=='sb'){const n={qa:['✅','QA/QC'],qs:['📊','QS']}[state.dept];$('#app').innerHTML=`<div class="soon"><div class="ic">${n[0]}</div><h2>Bộ phận ${n[1]}</h2><div>Mục này đang được xây dựng. Sẽ cập nhật sau khi bạn gửi nội dung cho bộ phận này.</div></div>`;document.querySelectorAll('.di').forEach(b=>b.setAttribute('aria-current',String(b.dataset.dept===state.dept)));return;}
   document.querySelectorAll('.di').forEach(b=>b.setAttribute('aria-current',String(b.dataset.dept===state.dept)));
@@ -530,8 +547,9 @@ async function syncCheck(manual){
   if(manual){b.disabled=false;b.textContent='⟳ Đồng bộ';}
 }
 $('#synb').onclick=()=>syncCheck(true);
+window.addEventListener('online',()=>syncCheck(false));window.addEventListener('pageshow',()=>{if(!$('#v').classList.contains('on'))syncCheck(false);});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!$('#v').classList.contains('on'))syncCheck(false);});
-setInterval(()=>{if(!document.hidden&&!$('#v').classList.contains('on'))syncCheck(false);},600000);
+setInterval(()=>{if(!document.hidden&&!$('#v').classList.contains('on'))syncCheck(false);},180000);
 
 load().catch(err=>{$('#app').innerHTML='<div class="empty">Không tải được dữ liệu: '+esc(err.message)+'</div>';});
 </script>
