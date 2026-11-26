@@ -188,14 +188,15 @@ function vOv(){
   const lateZ=open.filter(z=>zInfo(z,d).late>0);
   let h=head()+`<div class="tdcols"><div class="tdcol kh"><h4>Kế hoạch</h4><div class="v">${nxt?dm(nxt.pour):'—'}</div><div class="s">đổ BT tiếp theo${nxt?': '+esc(nxt.k):''}</div><div class="v" style="margin-top:6px">${f1(P/W,0)}%</div><div class="s">khối lượng KH đến đầu hôm nay</div><div class="v" style="margin-top:6px">${kq} người</div><div class="s">quân KH hôm nay</div></div>
   <div class="tdcol tt"><h4>Thực tế</h4><div class="v">${dn.length}/${Z.length} zone</div><div class="s">đã đổ BT (theo báo cáo ngày)</div><div class="v" style="margin-top:6px">${f1(A/W,0)}%</div><div class="s">khối lượng đã làm (ước tính)</div><div class="v" style="margin-top:6px">${tqh?tq+' người':'chưa có'}</div><div class="s">quân thực tế hôm nay</div></div></div>`;
+  h+=mapBox(null,'go',true);
+  h+=`<h3>Việc hôm nay</h3>`+(fgroup(it.filter(x=>(x.plan_qty[i]||0)>0||(x.plan_ppl[i]||0)>0),l=>{let t=`<div class="tdw"><table class="tdtb"><tr><th>Zone · việc</th><th class="k">KH quân</th><th class="t">TT quân</th><th class="k">KL kế hoạch</th></tr>`;
+    l.forEach(x=>{const q=x.plan_qty[i]||0,p=x.plan_ppl[i]||0,a=apl(x,i);t+=`<tr><td>${esc(x.floor+' '+x.zone)} · ${esc(x.task)}${d===x.pour?' <b>(ngày đổ)</b>':''}</td><td class="k">${p}</td><td class="t">${a==null?'—':a}</td><td class="k">${q?f1(q,1)+' '+x.unit:'—'}</td></tr>`;});return t+'</table></div>';})||'<div class="tds">Không có việc theo kế hoạch hôm nay.</div>');
   h+=lateZ.length?`<div class="tdalert">⚠ ${lateZ.length} zone đang chậm so với ngày đổ BT: ${lateZ.map(z=>esc(z.k)).join(', ')}. Quân KH không đủ để kịp, xem dòng đỏ bên dưới.</div>`:`<div class="tdok2">✔ Các zone chưa đổ đang đạt kế hoạch.</div>`;
   h+='<h3>Ngày đổ bê tông · khối lượng · quân cần (zone chưa đổ)</h3>';
   h+=(open.length?fgroup(open,l=>l.map(z=>zcard(z,d,false)).join('')):'<div class="tdn">Tất cả zone của lựa chọn này đã đổ BT.</div>');
   if(dn.length)h+=`<details class="tdmd" data-k="done-ov"><summary>Zone đã đổ BT (${dn.length})</summary>${dn.map(z=>`<div class="tdcard" style="border-left-color:${COL.ok}"><b>${esc(z.k)}</b> · ${esc(z.ntp)}<div class="tdm">${pourLine(z,d)}</div></div>`).join('')}</details>`;
   h+='<h3>Biểu đồ nhân lực, tiến độ và các mốc</h3>'+chart(it,fl==='all');
-  h+=stepsHtml(false);h+=mapBox(null,'go',false);
-  h+=`<h3>Việc hôm nay</h3>`+(fgroup(it.filter(x=>(x.plan_qty[i]||0)>0||(x.plan_ppl[i]||0)>0),l=>{let t=`<div class="tdw"><table class="tdtb"><tr><th>Zone · việc</th><th class="k">KH quân</th><th class="t">TT quân</th><th class="k">KL kế hoạch</th></tr>`;
-    l.forEach(x=>{const q=x.plan_qty[i]||0,p=x.plan_ppl[i]||0,a=apl(x,i);t+=`<tr><td>${esc(x.floor+' '+x.zone)} · ${esc(x.task)}${d===x.pour?' <b>(ngày đổ)</b>':''}</td><td class="k">${p}</td><td class="t">${a==null?'—':a}</td><td class="k">${q?f1(q,1)+' '+x.unit:'—'}</td></tr>`;});return t+'</table></div>';})||'<div class="tds">Không có việc theo kế hoạch hôm nay.</div>');
+  h+=stepsHtml(false);
   return h+`<div class="tdn"><b>Cách tính.</b> Kế hoạch lấy từ file bố trí quân REV49 (19/11). <b>Khối lượng đã làm</b> = số quân thực tế các ngày đã qua (bảng giấy 19–26/11 và báo cáo quân số) × năng suất theo kế hoạch của tổ đó; zone đã đổ BT tính 100%, cốp pha tính xong khi thép đã nghiệm thu. <b>Quân cần</b> = khối lượng còn lại ÷ năng suất ÷ số ngày còn đến ngày đổ. Dòng đỏ = quân KH các ngày còn lại không đủ làm hết khối lượng còn lại. Hầm B1 tính trên khối lượng còn lại tại 19/11.</div>`;
 }
 function zoneChips(){const d=todayS();return`<div class="tdz">${zonesF().map(z=>`<button data-zs="${esc(z.k)}" aria-pressed="${z.k===zsel}" style="--c:${COL[zInfo(z,d).st]}">${esc(z.k)}</button>`).join('')}</div>`;}

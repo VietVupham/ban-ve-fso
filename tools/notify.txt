@@ -8,3 +8,4 @@ QA/QC: thêm tab "Mặt bằng sản lượng" (zone tô màu đã đổ / đang
 Báo cáo quân số và sản lượng: chọn tên người báo cáo từ danh sách (giám sát hiện trường, nhân sự QA/QC). Vui lòng đóng và mở lại app.
 Báo cáo quân số và sản lượng: danh sách chọn tên chỉ hiện tên, bỏ chức danh. Vui lòng đóng và mở lại app.
 Kế hoạch & Tiến độ: làm lại tổng quan – ngày đổ BT, khối lượng đã làm/còn lại, quân cần để kịp (dòng đỏ khi chậm). Vui lòng đóng và mở lại app.
+Tổng quan tiến độ: mặt bằng chia zone và việc hôm nay đưa lên ngay dưới bảng Kế hoạch/Thực tế. Vui lòng đóng và mở lại app.
