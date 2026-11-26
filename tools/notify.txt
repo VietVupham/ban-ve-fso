@@ -12,3 +12,4 @@ Tổng quan tiến độ: mặt bằng chia zone và việc hôm nay đưa lên 
 Có trợ lý hỏi đáp 💬 ở góc phải: hỏi về bản vẽ, BPTC và tiến độ, kèm trang gốc. Vui lòng đóng và mở lại app.
 2026-11-26 chat.js v2: AI timeout 16s; sw bv-v35
 2026-11-26 chat.js v3: nhận trích dẫn 【n】; sw bv-v36
+2026-11-26 chat v4: robot kéo được, lời chào, ba chấm, trả lời ngắn, bỏ giới hạn từng máy; sw bv-v37

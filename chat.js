@@ -7,12 +7,18 @@ const EP='https://ppdxqcrckbwckqzumlwy.supabase.co/functions/v1/chat',KEY='sb_pu
 const $=s=>document.querySelector(s),E=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const STOP=new Set('la cua va cho cac co khong bao nhieu the nao gi khi o trong theo duoc can may hay biet ve tai den tu mot nhung nay do voi de thi se da dang ra vao len xuong sao tren duoi hoac nhu neu thay hoi minh toi em anh ban oi vay a nhe nhi giup cho'.split(' '));
 const SUG=['Zone nào đang chậm tiến độ?','Khi nào đổ bê tông Z3.2?','Hôm nay quân kế hoạch và thực tế bao nhiêu?','Biện pháp cốp pha đất dùng xà gồ bước bao nhiêu?','Thép về công trường khi nào?'];
-let IDX=null,MSG=[],busy=false,HIST=[],aiOff=false;
+let IDX=null,MSG=[],busy=false,HIST=[],aiOff=false,WHO='';
+try{WHO=localStorage.getItem('bv_who')||''}catch(e){}
+const isQ=q=>/\?|bao nhieu|khi nao|o dau|\bnao\b|\bsao\b|\bgi\b|khong|the nao|bao lau|\bmay\b|cho toi|\btim\b|\bmo\b|\bxem\b/.test(normQ(q));
+const wantSrc=q=>/tim|ban ve nao|o dau|trang|mo |lien quan|tai lieu|xem |danh muc|dau muc|ban ve|bptc|shop/.test(normQ(q));
 let tdp=null;const loadTD=()=>window.TD&&window.TD.facts?Promise.resolve():(tdp=tdp||new Promise(r=>{const e=document.createElement('script');e.src='tiendo.js?v=12';e.onload=r;e.onerror=r;document.head.appendChild(e);}));
 const dev=()=>{try{return localStorage.getItem('bv_vid')||localStorage.getItem('td_dev')||'anon'}catch(e){return'anon'}};
 
 function css(){if($('#cbcss'))return;const s=document.createElement('style');s.id='cbcss';s.textContent=`
-#cb{position:fixed;right:14px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:30;width:54px;height:54px;border-radius:50%;border:0;background:var(--acc2);color:#fff;font-size:26px;box-shadow:0 3px 12px rgba(0,0,0,.35)}
+#cb{position:fixed;left:calc(100vw - 68px);top:calc(100vh - 150px);z-index:30;width:54px;height:54px;border-radius:50%;border:0;background:var(--acc2);color:#fff;font-size:28px;line-height:1;box-shadow:0 3px 12px rgba(0,0,0,.35);touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+#cb.dr{cursor:grabbing;opacity:.85}
+.dots{display:inline-flex;gap:4px;align-items:center;height:18px}.dots i{width:7px;height:7px;border-radius:50%;background:var(--mute);animation:cbd 1.2s infinite ease-in-out}.dots i:nth-child(2){animation-delay:.2s}.dots i:nth-child(3){animation-delay:.4s}
+@keyframes cbd{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
 body:has(#v.on) #cb,body:has(#dr.on) #cb{display:none}
 #cp{position:fixed;inset:0;z-index:70;background:var(--bg);color:var(--ink);display:none;flex-direction:column}
 #cp.on{display:flex}
@@ -69,10 +75,18 @@ function plain(r,T){const nr=norm(r.raw);let i=-1;T.forEach(t=>{const j=nr.index
 /* ---- giao diện ---- */
 function ui(){
   if($('#cb'))return;css();
-  const b=document.createElement('button');b.id='cb';b.type='button';b.setAttribute('aria-label','Hỏi trợ lý');b.textContent='💬';
-  const p=document.createElement('div');p.id='cp';p.innerHTML=`<div class="ch"><b>💬 Hỏi trợ lý công trường</b><button id="cx" type="button">Đóng</button></div><div id="cm"></div><form id="cf"><input id="ci" autocomplete="off" placeholder="Hỏi về bản vẽ, BPTC, tiến độ…" enterkeyhint="send"><button id="cs">Gửi</button></form>`;
+  const b=document.createElement('button');b.id='cb';b.type='button';b.setAttribute('aria-label','Hỏi trợ lý');b.textContent='🤖';
+  const p=document.createElement('div');p.id='cp';p.innerHTML=`<div class="ch"><b>🤖 Trợ lý công trường</b><button id="cx" type="button">Đóng</button></div><div id="cm"></div><form id="cf"><input id="ci" autocomplete="off" placeholder="Hỏi về bản vẽ, BPTC, tiến độ…" enterkeyhint="send"><button id="cs">Gửi</button></form>`;
   document.body.append(b,p);
-  b.onclick=()=>{p.classList.add('on');if(!MSG.length)welcome();render();setTimeout(()=>$('#ci').focus(),80);};
+  const clamp=(x,y)=>[Math.min(Math.max(4,x),innerWidth-58),Math.min(Math.max(4,y),innerHeight-58)];
+  try{const sp=JSON.parse(localStorage.getItem('bv_cbpos')||'null');if(sp){const[x,y]=clamp(sp[0]*innerWidth,sp[1]*innerHeight);b.style.left=x+'px';b.style.top=y+'px';}}catch(e){}
+  let dg=null,moved=false;
+  b.addEventListener('pointerdown',e=>{dg={x:e.clientX,y:e.clientY,l:b.offsetLeft,t:b.offsetTop};moved=false;try{b.setPointerCapture(e.pointerId)}catch(_){}});
+  b.addEventListener('pointermove',e=>{if(!dg)return;const dx=e.clientX-dg.x,dy=e.clientY-dg.y;if(!moved&&Math.hypot(dx,dy)<8)return;moved=true;b.classList.add('dr');const[x,y]=clamp(dg.l+dx,dg.t+dy);b.style.left=x+'px';b.style.top=y+'px';});
+  const end=()=>{if(!dg)return;dg=null;b.classList.remove('dr');if(moved){try{localStorage.setItem('bv_cbpos',JSON.stringify([b.offsetLeft/innerWidth,b.offsetTop/innerHeight]))}catch(e){}}};
+  b.addEventListener('pointerup',end);b.addEventListener('pointercancel',end);
+  addEventListener('resize',()=>{const[x,y]=clamp(b.offsetLeft,b.offsetTop);b.style.left=x+'px';b.style.top=y+'px';});
+  b.onclick=()=>{if(moved){moved=false;return;}p.classList.add('on');if(!MSG.length)welcome();render();setTimeout(()=>$('#ci').focus(),80);};
   $('#cx').onclick=()=>p.classList.remove('on');
   $('#cf').onsubmit=e=>{e.preventDefault();const i=$('#ci'),q=i.value.trim();if(q&&!busy){i.value='';ask(q);}};
   $('#cm').addEventListener('click',e=>{
@@ -80,14 +94,16 @@ function ui(){
     const o=e.target.closest('[data-o]');if(o){const[m,i]=o.dataset.o.split('.').map(Number),x=MSG[m]&&MSG[m].src&&MSG[m].src[i];if(x){p.classList.remove('on');openViewer([x.p],0,(MSG[m].q||''));}}
   });
 }
-function welcome(){MSG.push({r:'b',h:`<div>Xin chào! Tôi trả lời dựa trên <b>BPTC, bản vẽ thiết kế, shop drawing</b> và <b>dữ liệu tiến độ</b> của dự án, kèm trang gốc để bạn kiểm tra.</div><div class="csg">${SUG.map((s,i)=>`<button type="button" data-sg="${i}">${E(s)}</button>`).join('')}</div><div class="n">Số liệu đọc từ bản scan có thể sai chữ số: luôn mở trang gốc để xác nhận trước khi thi công.</div>`});}
+function welcome(){MSG.push({r:'b',h:WHO?`<div>Xin chào <b>${E(WHO)}</b>! Bạn cần hỏi gì về bản vẽ, BPTC hay tiến độ?</div>`:`<div>Xin chào! Tôi là trợ lý công trường, sẽ có nhiệm vụ trả lời các câu hỏi thắc mắc của bạn liên quan tới các thông tin có trong ứng dụng của dự án.</div><div style="margin-top:6px">Hãy giới thiệu <b>tên và bộ phận phụ trách</b> của bạn để tôi biết và có thể trả lời các câu hỏi chuẩn hơn nhé.</div>`});}
 function render(){const m=$('#cm');if(!m)return;
-  m.innerHTML=MSG.map((x,i)=>x.r==='u'?`<div class="cu">${E(x.t)}</div>`:`<div class="cbot">${x.h}${x.src&&x.src.length?`<div class="n" style="margin-top:8px"><b>Trang liên quan</b> (bấm để mở)</div>`+x.src.map((r,j)=>{const d=describe(r);return`<button type="button" class="csrc" data-o="${i}.${j}"><b>${x.ai?`<span class="cref">${j+1}</span> `:''}${E(d.t)}</b><small>${E(d.w)}</small><div class="sn">${snippet(r.raw,x.T||[])}</div></button>`}).join(''):''}</div>`).join('')+(busy?'<div class="cbot">Đang tìm…</div>':'');
+  m.innerHTML=MSG.map((x,i)=>x.r==='u'?`<div class="cu">${E(x.t)}</div>`:`<div class="cbot">${x.h}${x.src&&x.src.length&&x.show?`<div class="n" style="margin-top:8px"><b>Trang liên quan</b> (bấm để mở)</div>`+x.src.map((r,j)=>{const d=describe(r);return`<button type="button" class="csrc" data-o="${i}.${j}"><b>${x.ai?`<span class="cref">${j+1}</span> `:''}${E(d.t)}</b><small>${E(d.w)}</small><div class="sn">${snippet(r.raw,x.T||[])}</div></button>`}).join(''):''}</div>`).join('')+(busy?'<div class="cbot"><span class="dots"><i></i><i></i><i></i></span></div>':'');
   m.scrollTop=m.scrollHeight;}
 function fmt(t,i){return E(t).replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>').replace(/[\[【](\d)[\]】]/g,(m,n)=>`<button type="button" class="cref" data-o="${i}.${n-1}">${n}</button>`).replace(/\n/g,'<br>');}
 
 async function ask(q){
-  busy=true;MSG.push({r:'u',t:q});render();
+  MSG.push({r:'u',t:q});
+  if(!WHO&&!isQ(q)&&q.length<=120){WHO=q.slice(0,120);try{localStorage.setItem('bv_who',WHO)}catch(e){}MSG.push({r:'b',h:`<div>Cảm ơn <b>${E(WHO)}</b>! Bạn cần hỏi gì về bản vẽ, BPTC hay tiến độ?</div>`});render();return;}
+  busy=true;render();
   let T=toks(q),q2=q;
   if(T.length<2&&HIST.length){q2=HIST[HIST.length-1].q+' '+q;}
   const rt=retrieve(q2,6);
@@ -99,10 +115,10 @@ async function ask(q){
       if(window.TD)sum=await window.TD.facts();
       const pass=rt.res.map((r,i)=>{const d=describe(r);return{n:i+1,title:d.t,where:d.w,text:plain(r,rt.t)};});
       const ac=new AbortController(),to=setTimeout(()=>ac.abort(),16000);
-      const resp=await fetch(EP,{method:'POST',signal:ac.signal,headers:{'Content-Type':'application/json',apikey:KEY,Authorization:'Bearer '+KEY},body:JSON.stringify({q,pass,facts:sum,hist:HIST.slice(-2),dev:dev()})});clearTimeout(to);
+      const resp=await fetch(EP,{method:'POST',signal:ac.signal,headers:{'Content-Type':'application/json',apikey:KEY,Authorization:'Bearer '+KEY},body:JSON.stringify({q,pass,facts:sum,hist:HIST.slice(-2),who:WHO,dev:dev()})});clearTimeout(to);
       const j=await resp.json().catch(()=>({}));
-      if(resp.ok&&j.ok&&j.answer){ai=j.answer;if(j.left!=null&&j.left<=3)note=`Còn ${j.left} câu hỏi AI hôm nay.`;}
-      else if(j.err==='quota'||j.err==='limit'){note=j.err==='limit'?'Bạn đã dùng hết số câu hỏi AI hôm nay, dưới đây là kết quả tìm kiếm.':'AI miễn phí đã hết hạn mức hôm nay, dưới đây là kết quả tìm kiếm.';}
+      if(resp.ok&&j.ok&&j.answer){ai=j.answer;if(j.left!=null&&j.left<=20)note=`Còn ${j.left} câu hỏi AI hôm nay (dùng chung cho cả đội).`;}
+      else if(j.err==='quota'||j.err==='limit'){note='Cả đội đã dùng hết lượt hỏi AI hôm nay, dưới đây là kết quả tìm kiếm. Mai sẽ hỏi AI được lại.';}
       else if(j.err==='no_key'||resp.status===404){aiOff=true;note='Chưa bật AI, dưới đây là kết quả tìm kiếm trong tài liệu.';}
       else note='AI đang bận, dưới đây là kết quả tìm kiếm trong tài liệu.';
     }catch(e){note=navigator.onLine?'AI đang bận, dưới đây là kết quả tìm kiếm trong tài liệu.':'Đang mất mạng, dưới đây là kết quả tìm kiếm trong dữ liệu đã lưu.';}
@@ -112,7 +128,7 @@ async function ask(q){
   if(facts&&!ai)h+=`<div class="f"><b>Số liệu tiến độ</b><br>${facts.map(E).join('<br>')}</div>`;
   if(!ai&&!facts&&!rt.res.length)h+='<div>Tôi chưa tìm thấy nội dung phù hợp. Thử hỏi bằng từ khóa cụ thể hơn (số hiệu bản vẽ, tên cấu kiện, tên zone).</div>';
   if(!ai&&rt.res.length&&!facts)h+=`<div class="n" style="margin-top:0">${note||''}</div>`;else if(note&&!(facts&&!ai&&0))h+=`<div class="n">${note}</div>`;
-  MSG.push({r:'b',h,src:(facts&&!ai)?[]:rt.res,T:rt.t,q,ai:!!ai});
+  MSG.push({r:'b',h,src:(facts&&!ai)?[]:rt.res,show:!ai||wantSrc(q),T:rt.t,q,ai:!!ai});
   HIST.push({q,a:ai||(facts?facts.join(' '):'')});if(HIST.length>4)HIST.shift();
   busy=false;render();
 }
