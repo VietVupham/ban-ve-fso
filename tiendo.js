@@ -246,47 +246,67 @@ function vPrep(){
 }
 /* ---- báo cáo ---- */
 const hhmm=ts=>{const x=new Date(ts);return String(x.getHours()).padStart(2,'0')+':'+String(x.getMinutes()).padStart(2,'0')};
-function board(){
-  const d=bdate||todayS(),R=reps().filter(r=>r.date===d),W={};
-  R.forEach(r=>{const k=(r.who||'(không tên)').trim();(W[k]=W[k]||{am:null,pm:null,items:new Set(),ppl:0,mine:false,ids:[]});const w=W[k];const cur=w[r.ses];if(!cur||r.ts>cur.ts)w[r.ses]=r;w.ids.push(r);if(r.dev===DEV)w.mine=true;});
-  const names=Object.keys(W).sort((a,b)=>a.localeCompare(b,'vi'));
-  let h=`<div class="tdh"><b>Bảng theo dõi báo cáo</b><span class="tds">${SYN.err?'<span class="late">chưa kết nối được</span>':SYN.t?'cập nhật '+hhmm(SYN.t):'đang tải…'}</span></div><div class="tdbd"><button class="tdbtn s" data-bd="-1">‹</button><b>${dow(d)} ${dm(d)}${d===todayS()?' (hôm nay)':''}</b><button class="tdbtn s" data-bd="1">›</button><button class="tdbtn s" data-bd="r">Làm mới</button></div>`;
+let MODE='plan';
+const QF={fl:'B1',z:'',who:'',d:null,s:null};
+const WHK={qn:'td_who',sl:'td_who_sl'};
+const isK=(r,k)=>k==='qn'?(r.k?r.k==='qn':!!r.ppl&&Object.keys(r.ppl).length>0):(r.k?r.k==='sl':!!r.pct&&Object.keys(r.pct).length>0);
+const itName=id=>{const it=K.items.find(x=>x.id===id);return it?it.task:id;};
+function board(kind){
+  const d=bdate||todayS(),R=reps().filter(r=>r.date===d&&isK(r,kind)).sort((a,b)=>a.ts-b.ts);
+  const T=kind==='qn'?'Bảng theo dõi báo cáo quân số':'Bảng theo dõi sản lượng đã nhập';
+  let h=`<div class="tdh"><b>${T}</b><span class="tds">${SYN.err?'<span class="late">chưa kết nối được</span>':SYN.t?'cập nhật '+hhmm(SYN.t):'đang tải…'}</span></div><div class="tdbd"><button class="tdbtn s" data-bd="-1">‹</button><b>${dow(d)} ${dm(d)}${d===todayS()?' (hôm nay)':''}</b><button class="tdbtn s" data-bd="1">›</button><button class="tdbtn s" data-bd="r">Làm mới</button></div>`;
   const unsent=reps().filter(r=>!r.sy).length;if(unsent)h+=`<div class="tdn late">Có ${unsent} báo cáo chưa gửi được lên hệ thống. App sẽ tự gửi lại khi có mạng.</div>`;
-  if(!names.length)return h+'<div class="tdn">Chưa có báo cáo nào trong ngày này.</div>';
-  h+='<div class="tdw"><table class="tdtb"><tr><th>Giám sát</th><th class="k">Đầu ngày<br>7h–8h</th><th class="t">Cuối ngày<br>17h30–19h</th><th>Đầu việc</th><th>Quân</th></tr>';
-  names.forEach(n=>{const w=W[n];const its=new Set(),tt=[];let q=0;[w.am,w.pm].forEach(r=>{if(!r)return;Object.keys(r.ppl||{}).forEach(k=>{its.add(k);});});
-    Object.keys(W[n].ids.reduce((a,r)=>{Object.keys(r.ppl||{}).forEach(k=>a[k]=1);return a},{})).forEach(k=>{const l=w.ids.filter(r=>r.ppl&&r.ppl[k]!=null).sort((a,b)=>b.ts-a.ts)[0];q+=+l.ppl[k]||0;});
-    const c=r=>r?`<b style="color:#2e8b57">✓</b> ${hhmm(r.ts)}${r.dev===DEV?` <button class="tdbtn s" data-rd="${esc(r.id)}" title="Xóa báo cáo này">✕</button>`:''}`:'<span class="tds">chưa</span>';
-    h+=`<tr><td><b>${esc(n)}</b></td><td class="k">${c(w.am)}</td><td class="t">${c(w.pm)}</td><td>${Object.keys(w.ids.reduce((a,r)=>{Object.keys(r.ppl||{}).concat(Object.keys(r.pct||{})).forEach(k=>a[k]=1);return a},{})).length}</td><td>${q}</td></tr>`;});
-  return h+'</table></div><div class="tds">Báo cáo của mọi giám sát trên các máy đều hiện ở đây. Chỉ người gửi mới xóa được báo cáo của mình.</div>';
+  if(!R.length)return h+'<div class="tdn">Chưa có báo cáo nào trong ngày này.</div>';
+  const zname=r=>r.zone||'—';
+  h+=`<div class="tdw"><table class="tdtb"><tr><th>Giám sát</th><th>Tầng</th><th>Zone</th><th>${kind==='qn'?'Công nhân':'Sản lượng (% tích lũy)'}</th><th>Giờ</th></tr>`;
+  R.forEach(r=>{const own=r.dev===DEV;let v;
+    if(kind==='qn'){v=Object.values(r.ppl||{}).reduce((a,b)=>a+(+b||0),0)+' người<br><small class="tds">'+(r.ses==='am'?'đầu ngày':'cuối ngày')+'</small>';}
+    else v=Object.keys(r.pct||{}).map(k=>esc(itName(k))+' '+f1(r.pct[k],0)+'%').join('<br>');
+    h+=`<tr><td><b>${esc(r.who||'—')}</b></td><td>${esc(r.fl||'')}</td><td>${esc(zname(r))}</td><td>${v}</td><td>${hhmm(r.ts)}${own?` <button class="tdbtn s" data-rd="${esc(r.id)}" title="Xóa báo cáo này">✕</button>`:''}</td></tr>`;});
+  return h+'</table></div><div class="tds">Báo cáo của mọi người trên các máy đều hiện ở đây. Chỉ người gửi mới xóa được báo cáo của mình.</div>';
 }
-function vRep(){
-  const d=todayS(),i=clampI(d),hr=new Date().getHours(),ses=hr>=15?'pm':'am';
-  const Z=zonesF().filter(z=>z.pour>=d);
+function formHead(kind){
+  const d=todayS(),Z=zones().filter(z=>z.floor===QF.fl).sort((a,b)=>(b.pour>=d)-(a.pour>=d)||a.pour.localeCompare(b.pour));
+  if(!QF.z||!Z.find(z=>z.k===QF.z))QF.z=Z.length?Z[0].k:'';
   const whos=[...new Set(reps().map(r=>r.who).filter(Boolean))];
-  let h=head()+`<div class="tdcard" id="tdboard" style="border-left-color:var(--acc2)">${board()}</div>
-  <h3>Gửi báo cáo mới</h3><div class="tdf"><label>Tên giám sát (bắt buộc)</label><input id="rwho" list="rwl" placeholder="Họ và tên giám sát" value="${esc(ld('td_who','')||'')}" autocomplete="off"><datalist id="rwl">${whos.map(w=>`<option value="${esc(w)}">`).join('')}</datalist>
-  <label>Ngày báo cáo</label><input type="date" id="rd" value="${d}">
-  <label>Phiên báo cáo</label><select id="rs"><option value="am"${ses==='am'?' selected':''}>Đầu ngày (7h–8h): quân số, việc dự kiến</option><option value="pm"${ses==='pm'?' selected':''}>Cuối ngày (17h30–19h): khối lượng xong, tăng ca</option></select>`;
-  const fs=fl==='all'?['B1','T1']:[fl];
-  fs.forEach(f=>{h+=`<div class="tdfh" style="background:${FC[f]}">${FLN[f]}</div>`;
-    NTPS.forEach(n=>{const zl=Z.filter(z=>z.floor===f&&z.ntp===n);const its=zl.flatMap(z=>z.items).filter(it=>!info(it,d).done);if(!its.length)return;
-      h+=`<h3>Tổ ${n}</h3><div class="tdrow h"><span>Đầu việc</span><span>Công nhân</span><span>% tích lũy</span></div>`;
-      its.forEach(it=>{const a=lastPct(it),x=info(it,d),cur=apl(it,i);h+=`<div class="tdrow"><span>${esc(it.floor+' '+it.zone)} · ${esc(it.task)}<br><small class="tds">KH hôm nay: ${it.plan_ppl[i]||0} người · KH đầu ngày ${f1(x.pp,0)}%${a?' · gần nhất '+f1(a.v,0)+'%':''}</small></span><input type="number" inputmode="numeric" min="0" data-p="${esc(it.id)}" placeholder="${it.plan_ppl[i]||0}" value="${cur==null?'':cur}"><input type="number" inputmode="decimal" min="0" max="100" data-i="${esc(it.id)}" placeholder="%" value="${a?a.v:''}"></div>`;});});});
+  const hr=new Date().getHours();
+  if(QF.who==='')QF.who=ld(WHK[kind],'')||'';
+  if(!QF.d)QF.d=d;if(!QF.s)QF.s=hr>=15?'pm':'am';
+  return`<label>1. Giám sát phụ trách${kind==='sl'?' (người nhập)':''} (bắt buộc)</label><input id="rwho" list="rwl" placeholder="Họ và tên" value="${esc(QF.who)}" autocomplete="off"><datalist id="rwl">${whos.map(w=>`<option value="${esc(w)}">`).join('')}</datalist>
+  <label>2. Tầng</label><select id="qfl"><option value="B1"${QF.fl==='B1'?' selected':''}>Hầm B1</option><option value="T1"${QF.fl==='T1'?' selected':''}>Tầng 1</option></select>
+  <label>3. Zone</label><select id="qz">${Z.map(z=>`<option value="${esc(z.k)}"${z.k===QF.z?' selected':''}>${esc(z.zone)} · ${esc(z.ntp)}${z.pour<d?' (đã đổ)':' · đổ '+dm(z.pour)}</option>`).join('')}</select>
+  <label>Ngày báo cáo</label><input type="date" id="rd" value="${QF.d}">`+(kind==='qn'?`<label>Phiên báo cáo</label><select id="rs"><option value="am"${QF.s==='am'?' selected':''}>Đầu ngày (7h–8h)</option><option value="pm"${QF.s==='pm'?' selected':''}>Cuối ngày (17h30–19h)</option></select>`:'');
+}
+function vQn(){
+  const d=todayS(),i=clampI(d),z=zones().find(x=>x.k===QF.z);
+  let h=head()+`<div class="tdcard" id="tdboard" style="border-left-color:var(--acc2)">${board('qn')}</div><h3>Gửi báo cáo quân số</h3><div class="tdf">`+formHead('qn');
+  const zz=zones().find(x=>x.k===QF.z);
+  h+=`<label>4. Số công nhân từng đầu việc${zz?' · '+esc(zz.k)+' ('+esc(zz.ntp)+')':''}</label>`;
+  if(zz){h+='<div class="tdrow h"><span>Đầu việc</span><span>Công nhân</span></div>';
+    zz.items.forEach(it=>{const cur=apl(it,i);h+=`<div class="tdrow" style="grid-template-columns:1fr 96px"><span>${esc(it.task)}<br><small class="tds">KH hôm nay: ${it.plan_ppl[i]||0} người</small></span><input type="number" inputmode="numeric" min="0" data-p="${esc(it.id)}" placeholder="${it.plan_ppl[i]||0}" value="${cur==null?'':cur}"></div>`;});}
   h+=`<label>Quân tăng ca sau 17h30 (tổng)</label><input type="number" inputmode="numeric" min="0" id="rot" value="0"><label>Ghi chú (vật tư, vướng mắc, thiếu quân…)</label><textarea id="rn" rows="3"></textarea><button class="tdbtn" id="rsv">Gửi báo cáo</button></div>`;
   return h;
 }
+function vSl(){
+  const d=todayS(),zz=zones().find(x=>x.k===QF.z);
+  let h=`<div class="tdn">Tracking sản lượng do người phụ trách QA/QC nhập. Nhập % khối lượng đã hoàn thành <b>tích lũy</b> của từng đầu việc trong zone. Số liệu này cập nhật vào cột Thực tế ở mục Kế hoạch & Tiến độ.</div><div class="tdcard" id="tdboard" style="border-left-color:var(--acc2)">${board('sl')}</div><h3>Nhập sản lượng</h3><div class="tdf">`+formHead('sl');
+  h+=`<label>4. % hoàn thành tích lũy từng đầu việc</label>`;
+  if(zz){h+='<div class="tdrow h"><span>Đầu việc</span><span>% tích lũy</span></div>';
+    zz.items.forEach(it=>{const a=lastPct(it),x=info(it,d);h+=`<div class="tdrow" style="grid-template-columns:1fr 96px"><span>${esc(it.task)}<br><small class="tds">KL ${f1(it.total,1)} ${it.unit} · KH đầu ngày ${f1(x.pp,0)}%${a?' · gần nhất '+f1(a.v,0)+'% ('+dm(a.date)+')':''}</small></span><input type="number" inputmode="decimal" min="0" max="100" data-i="${esc(it.id)}" placeholder="%" value=""></div>`;});}
+  h+=`<label>Ghi chú</label><textarea id="rn" rows="3"></textarea><button class="tdbtn" id="rsv">Gửi sản lượng</button></div>`;
+  return h;
+}
 function popup(t,m){let p=$('#tdpop');if(p)p.remove();p=document.createElement('div');p.id='tdpop';p.className='tdpop';p.innerHTML=`<div class="tdpb"><div class="tdok">✓</div><h3>${t}</h3><p>${m}</p><button class="tdbtn" id="tdpx">Đóng</button></div>`;document.body.appendChild(p);$('#tdpx').onclick=()=>p.remove();p.onclick=e=>{if(e.target===p)p.remove();};}
-const V={ov:vOv,zn:vZone,mn:vMan,pr:vPrep,rp:vRep};
-const TB=[['ov','Tổng quan'],['zn','Zone'],['mn','Nhân lực'],['pr','Chuẩn bị'],['rp','Báo cáo']];
+const V={ov:vOv,zn:vZone,mn:vMan,pr:vPrep};
+const TB=[['ov','Tổng quan'],['zn','Zone'],['mn','Nhân lực'],['pr','Chuẩn bị']];
 function bindBoard(r){
-  r.querySelectorAll('[data-bd]').forEach(b=>b.onclick=async()=>{const v=b.dataset.bd;if(v==='r'){await sync();const e=$('#tdboard');if(e){e.innerHTML=board();bindBoard(e);}return;}const d=new Date((bdate||todayS())+'T00:00:00');d.setDate(d.getDate()+(+v));bdate=iso(d);const e=$('#tdboard');e.innerHTML=board();bindBoard(e);});
+  r.querySelectorAll('[data-bd]').forEach(b=>b.onclick=async()=>{const v=b.dataset.bd;if(v==='r'){await sync();const e=$('#tdboard');if(e){e.innerHTML=board(MODE);bindBoard(e);}return;}const d=new Date((bdate||todayS())+'T00:00:00');d.setDate(d.getDate()+(+v));bdate=iso(d);const e=$('#tdboard');e.innerHTML=board(MODE);bindBoard(e);});
   r.querySelectorAll('[data-rd]').forEach(b=>b.onclick=async()=>{if(!confirm('Xóa báo cáo này khỏi hệ thống?'))return;const id=b.dataset.rd;try{await rpc('td_del',{p_id:id,p_dev:DEV});}catch(e){alert('Chưa xóa được, kiểm tra mạng');return;}setRC(reps().filter(x=>x.id!==id));draw();});
 }
 function draw(){
   const r=$('#tdr');if(!r)return;const y=window.scrollY;
-  r.innerHTML=flbar()+`<div class="tdt">${TB.map(t=>`<button data-tb="${t[0]}" aria-pressed="${t[0]===tab}">${t[1]}</button>`).join('')}</div>`+V[tab]();
-  const fs=$('#flsel');fs.onchange=()=>{fl=fs.value;try{localStorage.setItem('td_fl2',fl)}catch(e){}if(fl!=='all'&&zsel&&!zsel.startsWith(fl))zsel=null;draw();};
+  r.innerHTML=(MODE==='plan'?flbar()+`<div class="tdt">${TB.map(t=>`<button data-tb="${t[0]}" aria-pressed="${t[0]===tab}">${t[1]}</button>`).join('')}</div>`+V[tab]():MODE==='qn'?vQn():vSl());
+  const fs=$('#flsel');if(fs)fs.onchange=()=>{fl=fs.value;try{localStorage.setItem('td_fl2',fl)}catch(e){}if(fl!=='all'&&zsel&&!zsel.startsWith(fl))zsel=null;draw();};
   r.querySelectorAll('[data-tb]').forEach(b=>b.onclick=()=>{tab=b.dataset.tb;draw();window.scrollTo(0,0);});
   r.querySelectorAll('[data-z]').forEach(b=>b.onclick=()=>{zsel=b.dataset.z;tab='zn';draw();window.scrollTo(0,0);});
   r.querySelectorAll('[data-pin]').forEach(b=>b.onclick=()=>{const k=b.dataset.pin;if(b.dataset.mode==='go'){zsel=k;tab='zn';draw();window.scrollTo(0,0);}else{zsel=zsel===k?null:k;draw();window.scrollTo(0,y);}});
@@ -295,32 +315,39 @@ function draw(){
   r.querySelectorAll('[data-m]').forEach(s=>s.onchange=()=>{const M=ld(MK,{});(M[s.dataset.m]=M[s.dataset.m]||{}).s=s.value;sv(MK,M);draw();window.scrollTo(0,y);});
   r.querySelectorAll('[data-md]').forEach(s=>s.onchange=()=>{const M=ld(MK,{});(M[s.dataset.md]=M[s.dataset.md]||{}).d=s.value;sv(MK,M);});
   bindBoard(r);
+  const cap=()=>{const w=$('#rwho');if(w)QF.who=w.value;const dd=$('#rd');if(dd)QF.d=dd.value;const ss=$('#rs');if(ss)QF.s=ss.value;};
+  const qf=$('#qfl');if(qf)qf.onchange=()=>{cap();QF.fl=qf.value;QF.z='';draw();};
+  const qz=$('#qz');if(qz)qz.onchange=()=>{cap();QF.z=qz.value;draw();};
   const sb=$('#rsv');if(sb)sb.onclick=async()=>{
-    const who=$('#rwho').value.trim();
-    if(!who){alert('Nhập tên giám sát trước khi gửi báo cáo');$('#rwho').focus();return;}
-    sv('td_who',who);
-    const rec={id:Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),date:$('#rd').value,ses:$('#rs').value,fl:fl==='all'?'B1+T1':fl,who,dev:DEV,ppl:{},pct:{},ot:+$('#rot').value||0,note:$('#rn').value.trim(),ts:Date.now()};
+    cap();const kind=MODE,who=QF.who.trim();
+    if(!who){alert('Nhập tên giám sát trước khi gửi');$('#rwho').focus();return;}
+    if(!QF.z){alert('Chọn zone');return;}
+    if(!QF.d){alert('Chọn ngày báo cáo');return;}
+    sv(WHK[kind],who);
+    const rec={id:Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),k:kind,date:QF.d,ses:kind==='qn'?QF.s:'sl',fl:QF.fl,zone:QF.z,who,dev:DEV,ppl:{},pct:{},ot:kind==='qn'?(+$('#rot').value||0):0,note:$('#rn').value.trim(),ts:Date.now()};
     r.querySelectorAll('[data-p]').forEach(e=>{if(e.value!=='')rec.ppl[e.dataset.p]=+e.value;});
     let bad=false;r.querySelectorAll('[data-i]').forEach(e=>{if(e.value==='')return;const v=+e.value;if(!(v>=0&&v<=100))bad=true;rec.pct[e.dataset.i]=v;});
     if(bad){alert('% phải nằm trong khoảng 0–100');return;}
-    if(!rec.date){alert('Chọn ngày báo cáo');return;}
-    if(!Object.keys(rec.ppl).length&&!Object.keys(rec.pct).length){alert('Nhập ít nhất số công nhân hoặc % của một đầu việc');return;}
+    if(kind==='qn'&&!Object.keys(rec.ppl).length){alert('Nhập số công nhân của ít nhất một đầu việc');return;}
+    if(kind==='sl'&&!Object.keys(rec.pct).length){alert('Nhập % của ít nhất một đầu việc');return;}
     sb.disabled=true;sb.textContent='Đang gửi…';
     reps();setRC(RC.concat([rec]));
-    const ok=await sync();
+    await sync();
     const sent=reps().find(x=>x.id===rec.id);
     bdate=rec.date;draw();window.scrollTo(0,0);
-    if(sent&&sent.sy)popup('Đã gửi báo cáo','Báo cáo của '+esc(who)+' ('+(rec.ses==='am'?'đầu ngày':'cuối ngày')+', '+dm(rec.date)+') đã được gửi. Mọi người dùng app đều thấy trong bảng theo dõi.');
+    const nm=kind==='qn'?'báo cáo quân số':'sản lượng';
+    if(sent&&sent.sy)popup('Đã gửi báo cáo','Đã gửi '+nm+' của '+esc(who)+' ('+esc(rec.zone)+', '+dm(rec.date)+'). Mọi người dùng app đều thấy trong bảng theo dõi.');
     else popup('Đã lưu báo cáo','Chưa gửi được lên hệ thống (có thể mất mạng). Báo cáo được giữ trên máy và app sẽ tự gửi lại khi có mạng.');
   };
 }
 function tick(){
   if(!$('#tdr')){clearInterval(TIMER);TIMER=null;return;}
   sync().then(ch=>{if(!$('#tdr'))return;const a=document.activeElement;const typing=a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName);
-    if(tab==='rp'){const e=$('#tdboard');if(e&&!(a&&e.contains(a))){e.innerHTML=board();bindBoard(e);}}
+    if(MODE!=='plan'){const e=$('#tdboard');if(e&&!(a&&e.contains(a))){e.innerHTML=board(MODE);bindBoard(e);}}
     else if(ch&&!typing)draw();});
 }
-window.TD={open:async function(el){
+window.TD={open:async function(el,mode){
+  MODE=mode||'plan';
   css();el.innerHTML='<div id="tdr"><div class="tdn">Đang tải kế hoạch…</div></div>';
   try{if(!K){const r=await fetch('data/kehoach.json',{cache:'no-cache'});K=await r.json();}}
   catch(e){el.innerHTML='<div id="tdr"><div class="tdn">Chưa tải được dữ liệu kế hoạch. Kiểm tra mạng rồi mở lại.</div></div>';return;}
