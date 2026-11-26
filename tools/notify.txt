@@ -3,3 +3,4 @@ Mới: mục "Kế hoạch & Tiến độ" trong menu ☰ (bản xem thử): k�
 Cập nhật mục Kế hoạch & Tiến độ: lọc theo tầng, 2 cột Kế hoạch/Thực tế, mặt bằng zone tô màu, biểu đồ nhân lực–tiến độ–mốc, báo cáo theo tầng/tổ đội. Vui lòng đóng và mở lại app.
 Kế hoạch & Tiến độ: chọn tầng bằng danh sách (mặc định Hầm B1), thu gọn mặt bằng và từng Zone, thanh tiến độ có màu và % thực tế, báo cáo gửi chung cho mọi người xem (bảng theo dõi ai đã báo cáo). Vui lòng đóng và mở lại app.
 Mới: mục "Báo cáo quân số" riêng trong menu ☰ (giám sát, tầng, zone, số công nhân) và mục QA/QC có Tracking sản lượng theo zone. Vui lòng đóng và mở lại app.
+QA/QC: Tracking sản lượng theo zone (cột, vách, dầm sàn, bể nước; cốp pha, cốt thép, bê tông) và tiến trình hầm 15 bước theo BPTC tổng thể; liên kết sang Kế hoạch & Tiến độ để biết zone nào đã đổ. Vui lòng đóng và mở lại app.
