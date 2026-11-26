@@ -84,7 +84,7 @@ function welcome(){MSG.push({r:'b',h:`<div>Xin chào! Tôi trả lời dựa tr�
 function render(){const m=$('#cm');if(!m)return;
   m.innerHTML=MSG.map((x,i)=>x.r==='u'?`<div class="cu">${E(x.t)}</div>`:`<div class="cbot">${x.h}${x.src&&x.src.length?`<div class="n" style="margin-top:8px"><b>Trang liên quan</b> (bấm để mở)</div>`+x.src.map((r,j)=>{const d=describe(r);return`<button type="button" class="csrc" data-o="${i}.${j}"><b>${x.ai?`<span class="cref">${j+1}</span> `:''}${E(d.t)}</b><small>${E(d.w)}</small><div class="sn">${snippet(r.raw,x.T||[])}</div></button>`}).join(''):''}</div>`).join('')+(busy?'<div class="cbot">Đang tìm…</div>':'');
   m.scrollTop=m.scrollHeight;}
-function fmt(t,i){return E(t).replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>').replace(/\[(\d)\]/g,(m,n)=>`<button type="button" class="cref" data-o="${i}.${n-1}">${n}</button>`).replace(/\n/g,'<br>');}
+function fmt(t,i){return E(t).replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>').replace(/[\[【](\d)[\]】]/g,(m,n)=>`<button type="button" class="cref" data-o="${i}.${n-1}">${n}</button>`).replace(/\n/g,'<br>');}
 
 async function ask(q){
   busy=true;MSG.push({r:'u',t:q});render();
