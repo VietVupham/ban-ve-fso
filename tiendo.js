@@ -538,4 +538,25 @@ window.TD={open:async function(el,mode){
   sync().then(ch=>{if(ch&&$('#tdr'))draw();});
   if(!TIMER)TIMER=setInterval(tick,45000);
 }};
+
+async function ensureK(){if(!K){const r=await fetch('data/kehoach.json',{cache:'no-cache'});K=await r.json();}RS=null;}
+function zline(z,d){const m=K.kl[z.k]||{},pd=poured(z),n=diff(d,z.pour),tv=thepVe(z);
+  let t=`${z.k} (${z.ntp}): `+(pd?`đã đổ BT ${dm(pd)} (KH ${dm(z.pour)})`:n>0?`chưa đổ, KH đổ ${dm(z.pour)}, còn ${n} ngày`:n===0?`KH đổ hôm nay ${dm(z.pour)}, chưa có báo cáo đã đổ`:`quá hạn đổ ${-n} ngày (KH ${dm(z.pour)}), chưa có báo cáo đã đổ`);
+  z.items.forEach(it=>{const x=info(it,d);t+=`; ${KN(it,z)} ${f1(it.total,KD(it))} ${it.unit}: đã làm ${f1(x.act,0)}%`+(x.done?' (xong)':`, còn ${f1(x.rem,KD(it))}, cần ${f1(x.pplNeed,0)} người/ngày (KH ${f1(x.pplPlan,0)})${x.late?' → CHẬM':''}`);});
+  if(m.bt)t+=`; bê tông ${f1(m.bt,0)} m³`;if(tv)t+=`; thép về KH ${dm(tv)}`;return t+'.';}
+const zsorted=()=>zones().slice().sort((a,b)=>a.pour.localeCompare(b.pour)||a.k.localeCompare(b.k));
+window.TD.facts=async function(){await ensureK();const d=todayS();
+  let t=`Hôm nay ${dm(d)}. Nguồn: file bố trí quân REV49 (19/11), báo cáo ngày, bảng quân ghi tay. Khối lượng đã làm là ước tính (quân thực tế × năng suất theo KH); hầm B1 tính trên khối lượng còn lại tại 19/11. Quân KH/cần là người mỗi ngày từ hôm nay đến ngày đổ.\n`;
+  zsorted().forEach(z=>{t+=zline(z,d)+'\n';});return t;};
+window.TD.answer=async function(q){await ensureK();const d=todayS(),n=norm(q);const Z=zsorted();
+  const nums=[...n.matchAll(/\b(?:z|zone)\s*(\d(?:\.\d)?)/g)].map(m=>m[1]);
+  const flB=/\bb1\b|\bham\b/.test(n),flT=/\bt1\b|tang\s*1\b/.test(n);
+  let hit=nums.length?Z.filter(z=>nums.some(k=>z.zone==='Z'+k||(k.indexOf('.')<0&&z.zone.startsWith('Z'+k+'.')))&&(flB&&!flT?z.floor==='B1':flT&&!flB?z.floor==='T1':true)):[];
+  const out=[];
+  if(hit.length){hit.forEach(z=>out.push(zline(z,d)));}
+  else if(/cham|tre\b|thieu|kip|nguy co|tre tien do/.test(n)){const L=Z.filter(z=>!poured(z)&&zInfo(z,d).late>0);out.push(L.length?'Zone đang chậm so với ngày đổ BT: '+L.map(z=>z.k).join(', ')+'.':'Hiện không zone nào chậm so với kế hoạch.');L.forEach(z=>out.push(zline(z,d)));}
+  else if(/\bdo\b.*(bt|be tong)|ngay do|be tong|\bbt\b/.test(n)&&!/cot thep|coffa|cop pha|xa go/.test(n)){Z.filter(z=>!poured(z)).slice(0,6).forEach(z=>out.push(zline(z,d)));}
+  else if(/quan|nhan luc|nhan cong|cong nhan|bao nhieu nguoi/.test(n)){let kh=0,tt=0,has=false;const i=clampI(d);K.items.forEach(it=>{kh+=it.plan_ppl[i]||0;const a=apl(it,i);if(a!=null){tt+=a;has=true;}});out.push(`Hôm nay ${dm(d)}: quân kế hoạch ${kh} người, quân thực tế ${has?tt+' người':'chưa có số liệu'} (toàn bộ B1 và T1).`);}
+  else if(/thep ve|thep gia cong|povina/.test(n)){Z.forEach(z=>{const tv=thepVe(z);if(tv)out.push(`${z.k}: thép về theo KH ${dm(tv)}`);});}
+  return out.length?out:null;};
 })();

@@ -9,3 +9,4 @@ Báo cáo quân số và sản lượng: chọn tên người báo cáo từ dan
 Báo cáo quân số và sản lượng: danh sách chọn tên chỉ hiện tên, bỏ chức danh. Vui lòng đóng và mở lại app.
 Kế hoạch & Tiến độ: làm lại tổng quan – ngày đổ BT, khối lượng đã làm/còn lại, quân cần để kịp (dòng đỏ khi chậm). Vui lòng đóng và mở lại app.
 Tổng quan tiến độ: mặt bằng chia zone và việc hôm nay đưa lên ngay dưới bảng Kế hoạch/Thực tế. Vui lòng đóng và mở lại app.
+Có trợ lý hỏi đáp 💬 ở góc phải: hỏi về bản vẽ, BPTC và tiến độ, kèm trang gốc. Vui lòng đóng và mở lại app.
