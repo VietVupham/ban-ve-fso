@@ -17,3 +17,14 @@ Là bản sao của repo riêng `VietVupham/thep-qr-b1` (index.html + thư mục
 - Tăng `V` trong sw.js mỗi lần triển khai.
 - Shop có 2 phiên bản hiển thị: `ver:'t'` (file thực hiện, chunk `s<doc>_n`, doc `008`) và `ver:'d'` (bản scan duyệt, chunk `s<doc>d_n`, doc `008d`). QR luôn trỏ `#s-<doc>-<trang>` = bản thực hiện. BPTC: tab thực hiện = tài liệu có `st` (đang trình), tab duyệt = còn lại.
 - Tải PDF được dựng ngay trên máy từ ảnh các trang (không lưu PDF gốc trên repo).
+
+## Thông báo đẩy sau mỗi lần cập nhật (bắt buộc)
+- Sau MỖI lần cập nhật (bản vẽ shop, BPTC, thiết kế, đặt hàng, QR): ghi 1 dòng nội dung ngắn vào `tools/notify.txt` (ví dụ "Đã cập nhật QR đợt 8 + mặt bằng tầng 1") và đổi giờ `updated` trong `version.json` (kể cả khi chỉ cập nhật QR, để workflow chạy). Commit + push cùng lúc.
+- Workflow `.github/workflows/push.yml` tự gửi thông báo tới mọi máy đã bật (bảng `push_subs` trên Supabase, secret VAPID_PRIVATE + PUSH_TOKEN). Xem kết quả ở tab Actions của repo.
+- Có thể gửi tay: Actions > Thong bao cap nhat > Run workflow, nhập nội dung.
+
+## Cập nhật QR đợt mới (tự đặt vị trí lên mặt bằng thiết kế)
+- Stage `07. QR tìm thép/<thư mục đợt>` và bản vẽ thiết kế tầng mới nhất (`02. Bản vẽ thiết kế`).
+- Chạy: `python3 tools/qr_batch.py "<thư mục đợt>" /home/claude/thep-qr-b1/index.html /home/claude/ban-ve-fso/qr/index.html --design <pdf thiết kế tầng 1>`
+  (đọc mã QR, thêm tem, dựng mặt bằng tầng 1 từ bản thiết kế 02-106, đặt pin theo nhãn dầm; in ra cấu kiện không thấy nhãn để xử lý tay). Chép lại index.html cho cả 2 repo, commit, push.
+- Khi có bản vẽ shop dầm tầng 1: rà soát, ghép chi tiết thép (details) vào từng cấu kiện để quét QR ra chi tiết thép; việc này chưa làm vì shop tầng 1 chưa có trên Drive.
