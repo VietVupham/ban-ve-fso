@@ -28,3 +28,6 @@ Là bản sao của repo riêng `VietVupham/thep-qr-b1` (index.html + thư mục
 - Chạy: `python3 tools/qr_batch.py "<thư mục đợt>" /home/claude/thep-qr-b1/index.html /home/claude/ban-ve-fso/qr/index.html --design <pdf thiết kế tầng 1>`
   (đọc mã QR, thêm tem, dựng mặt bằng tầng 1 từ bản thiết kế 02-106, đặt pin theo nhãn dầm; in ra cấu kiện không thấy nhãn để xử lý tay). Chép lại index.html cho cả 2 repo, commit, push.
 - Khi có bản vẽ shop dầm tầng 1: rà soát, ghép chi tiết thép (details) vào từng cấu kiện để quét QR ra chi tiết thép; việc này chưa làm vì shop tầng 1 chưa có trên Drive.
+
+## Zone tầng 1 (tự động)
+Nguồn ranh Zone: BPTC cốp pha dầm sàn T1 (MOS.029) trang "Mặt bằng chia Zone, lỗ mở và mạch ngừng". Ranh được căn lên mặt bằng thiết kế bằng các nhãn dầm trùng nhau (scale ≈2.177); mỗi ghim có `z`, tem có "ZONE x.y" trong tên đơn hàng chỉ hiện đoạn thuộc Zone đó. Khi BPTC đổi ranh, cập nhật hàm zone() rồi chạy lại.
