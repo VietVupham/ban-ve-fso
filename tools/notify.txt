@@ -1,1 +1,1 @@
-Đã sửa lỗi hiển thị bản vẽ shop B1 cho tem tầng 1. Vui lòng đóng hẳn app rồi mở lại; cuối trang QR có dòng 'Bản app: 26/11 · tầng 1 an toàn (v22)' để kiểm tra đã lên bản mới.
+Kiểm đếm thép: lịch sử các phiên nay dùng chung mọi máy; mặt bằng có nhãn 'đã quét/tổng tem' và bảng thống kê theo vị trí. Vui lòng đóng và mở lại app.
