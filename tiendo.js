@@ -341,7 +341,7 @@ const WHK={qn:'td_who',sl:'td_who_sl'};
 const PPL={qn:[['Phan Tiến Đạt','GSHT'],['Phạm Tiến Sỹ','GSHT'],['Nguyễn Anh Tân','GSHT'],['Huỳnh Viết Minh Quân','GSTB'],['Nguyễn Minh Long','GSHT'],['Lê Đình Tú','GSHT'],['Nguyễn Thanh Trực','MEP'],['Đỗ Trường Hải','Giám sát chính']],
  sl:[['Nguyễn Khắc Vũ','QAQC'],['Lê Tuấn Anh','QAQC'],['Phạm Viết Vũ','SHOP/BPTC'],['Huỳnh Tấn Phát','SHOP/BPTC']]};
 function whoField(kind,label){const L=PPL[kind],inL=L.some(x=>x[0]===QF.who),oth=QF.who&&!inL;
-  return`<label>${label}</label><select id="rwho"><option value="">— Chọn tên —</option>${L.map(x=>`<option value="${esc(x[0])}"${QF.who===x[0]?' selected':''}>${esc(x[0])} · ${esc(x[1])}</option>`).join('')}<option value="__o"${oth?' selected':''}>Khác (nhập tên)</option></select>${oth?`<input id="rwo" placeholder="Họ và tên" value="${esc(QF.who)}" autocomplete="off">`:''}`;}
+  return`<label>${label}</label><select id="rwho"><option value="">— Chọn tên —</option>${L.map(x=>`<option value="${esc(x[0])}"${QF.who===x[0]?' selected':''}>${esc(x[0])}</option>`).join('')}<option value="__o"${oth?' selected':''}>Khác (nhập tên)</option></select>${oth?`<input id="rwo" placeholder="Họ và tên" value="${esc(QF.who)}" autocomplete="off">`:''}`;}
 const isK=(r,k)=>k==='qn'?(r.k?r.k==='qn':!!r.ppl&&Object.keys(r.ppl).length>0):(r.k?r.k==='sl':!!r.pct&&Object.keys(r.pct).length>0);
 const itName=id=>{const it=K.items.find(x=>x.id===id);return it?it.task:id;};
 function board(kind){
