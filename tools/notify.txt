@@ -1,2 +1,3 @@
 Kiểm đếm thép: lịch sử các phiên nay dùng chung mọi máy; mặt bằng có nhãn 'đã quét/tổng tem' và bảng thống kê theo vị trí. Vui lòng đóng và mở lại app.
 Mới: mục "Kế hoạch & Tiến độ" trong menu ☰ (bản xem thử): kế hoạch B1–T1, quân số, vật tư, nhập báo cáo. Vui lòng đóng và mở lại app.
+Cập nhật mục Kế hoạch & Tiến độ: lọc theo tầng, 2 cột Kế hoạch/Thực tế, mặt bằng zone tô màu, biểu đồ nhân lực–tiến độ–mốc, báo cáo theo tầng/tổ đội. Vui lòng đóng và mở lại app.
