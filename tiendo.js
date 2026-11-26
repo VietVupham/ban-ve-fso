@@ -338,6 +338,10 @@ function slLevels(){ // bảng tổng hợp từng tầng, từng zone
 let MODE='plan';
 const QF={fl:'B1',z:'',who:'',d:null,s:null};
 const WHK={qn:'td_who',sl:'td_who_sl'};
+const PPL={qn:[['Phan Tiến Đạt','GSHT'],['Phạm Tiến Sỹ','GSHT'],['Nguyễn Anh Tân','GSHT'],['Huỳnh Viết Minh Quân','GSTB'],['Nguyễn Minh Long','GSHT'],['Lê Đình Tú','GSHT'],['Nguyễn Thanh Trực','MEP'],['Đỗ Trường Hải','Giám sát chính']],
+ sl:[['Nguyễn Khắc Vũ','QAQC'],['Lê Tuấn Anh','QAQC'],['Phạm Viết Vũ','SHOP/BPTC'],['Huỳnh Tấn Phát','SHOP/BPTC']]};
+function whoField(kind,label){const L=PPL[kind],inL=L.some(x=>x[0]===QF.who),oth=QF.who&&!inL;
+  return`<label>${label}</label><select id="rwho"><option value="">— Chọn tên —</option>${L.map(x=>`<option value="${esc(x[0])}"${QF.who===x[0]?' selected':''}>${esc(x[0])} · ${esc(x[1])}</option>`).join('')}<option value="__o"${oth?' selected':''}>Khác (nhập tên)</option></select>${oth?`<input id="rwo" placeholder="Họ và tên" value="${esc(QF.who)}" autocomplete="off">`:''}`;}
 const isK=(r,k)=>k==='qn'?(r.k?r.k==='qn':!!r.ppl&&Object.keys(r.ppl).length>0):(r.k?r.k==='sl':!!r.pct&&Object.keys(r.pct).length>0);
 const itName=id=>{const it=K.items.find(x=>x.id===id);return it?it.task:id;};
 function board(kind){
@@ -362,7 +366,7 @@ function formHead(kind){
   const hr=new Date().getHours();
   if(QF.who==='')QF.who=ld(WHK[kind],'')||'';
   if(!QF.d)QF.d=d;if(!QF.s)QF.s=hr>=15?'pm':'am';
-  return`<label>1. Giám sát phụ trách${kind==='sl'?' (người nhập)':''} (bắt buộc)</label><input id="rwho" list="rwl" placeholder="Họ và tên" value="${esc(QF.who)}" autocomplete="off"><datalist id="rwl">${whos.map(w=>`<option value="${esc(w)}">`).join('')}</datalist>
+  return whoField(kind,'1. Giám sát phụ trách'+(kind==='sl'?' (người nhập)':'')+' (bắt buộc)')+`
   <label>2. Tầng</label><select id="qfl"><option value="B1"${QF.fl==='B1'?' selected':''}>Hầm B1</option><option value="T1"${QF.fl==='T1'?' selected':''}>Tầng 1</option></select>
   <label>3. Zone</label><select id="qz">${Z.map(z=>`<option value="${esc(z.k)}"${z.k===QF.z?' selected':''}>${esc(z.zone)} · ${esc(z.ntp)}${z.pour<d?' (đã đổ)':' · đổ '+dm(z.pour)}</option>`).join('')}</select>
   <label>Ngày báo cáo</label><input type="date" id="rd" value="${QF.d}">`+(kind==='qn'?`<label>Phiên báo cáo</label><select id="rs"><option value="am"${QF.s==='am'?' selected':''}>Đầu ngày (7h–8h)</option><option value="pm"${QF.s==='pm'?' selected':''}>Cuối ngày (17h30–19h)</option></select>`:'');
@@ -399,7 +403,7 @@ function formSl(){
   if(!QF.d)QF.d=d;if(QF.who==='')QF.who=ld(WHK.sl,'')||'';
   if(zs.length){if(QF.z!=='ALL'&&!zs.includes(QF.z))QF.z=zs[0];}else QF.z='ALL';
   const whos=[...new Set(reps().map(r=>r.who).filter(Boolean))];
-  let h=`<label>1. Tên GS BCH báo cáo (bắt buộc)</label><input id="rwho" list="rwl" placeholder="Họ và tên GS BCH" value="${esc(QF.who)}" autocomplete="off"><datalist id="rwl">${whos.map(w=>`<option value="${esc(w)}">`).join('')}</datalist>
+  let h=whoField('sl','1. Tên người báo cáo – nhân sự QA/QC (bắt buộc)')+`
   <label>2. Tầng</label><select id="qfl">${LVS.map(l=>`<option value="${l[0]}"${QF.fl===l[0]?' selected':''}>${l[1]}</option>`).join('')}</select>`;
   if(zs.length)h+=`<label>3. Zone (mẻ đổ)</label><select id="qz">${zs.map(z=>`<option value="${z}"${QF.z===z?' selected':''}>Zone ${esc(z.slice(1))}</option>`).join('')}<option value="ALL"${QF.z==='ALL'?' selected':''}>Hạng mục chung của tầng (bể nước, lỗ mở…)</option></select>`;
   h+=`<label>Ngày báo cáo</label><input type="date" id="rd" value="${QF.d}">
@@ -459,12 +463,13 @@ function draw(){
   const sf=$('#slf');if(sf)sf.onchange=()=>{slF=sf.value;slZ=null;draw();};
   r.querySelectorAll('[data-slpin]').forEach(b=>b.onclick=()=>{slZ=slZ===b.dataset.slpin?null:b.dataset.slpin;draw();window.scrollTo(0,y);});
   r.querySelectorAll('[data-slrep]').forEach(b=>b.onclick=()=>{QF.fl=slF;QF.z=b.dataset.slrep==='ALL'?'ALL':slZ;slTab='rep';draw();window.scrollTo(0,0);});
-  const cap=()=>{const w=$('#rwho');if(w)QF.who=w.value;const dd=$('#rd');if(dd)QF.d=dd.value;const ss=$('#rs');if(ss)QF.s=ss.value;};
+  const cap=()=>{const w=$('#rwho');if(w){QF.who=w.value==='__o'?(($('#rwo')&&$('#rwo').value)||'__o'):w.value;}const dd=$('#rd');if(dd)QF.d=dd.value;const ss=$('#rs');if(ss)QF.s=ss.value;};
+  const rw=$('#rwho');if(rw)rw.onchange=()=>{const v=rw.value;cap();if(v==='__o')QF.who=QF.who&&QF.who!=='__o'?QF.who:'__o';draw();};
   const qf=$('#qfl');if(qf)qf.onchange=()=>{cap();QF.fl=qf.value;QF.z='';draw();};
   const qz=$('#qz');if(qz)qz.onchange=()=>{cap();QF.z=qz.value;draw();};
   const sb=$('#rsv');if(sb)sb.onclick=async()=>{
-    cap();const kind=MODE,who=QF.who.trim();
-    if(!who){alert('Nhập tên giám sát trước khi gửi');$('#rwho').focus();return;}
+    cap();const kind=MODE,who=(QF.who==='__o'?'':QF.who).trim();
+    if(!who){alert('Chọn hoặc nhập tên người báo cáo trước khi gửi');$('#rwho').focus();return;}
     if(!QF.z){alert('Chọn zone');return;}
     if(!QF.d){alert('Chọn ngày báo cáo');return;}
     sv(WHK[kind],who);

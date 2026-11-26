@@ -5,3 +5,4 @@ Kế hoạch & Tiến độ: chọn tầng bằng danh sách (mặc định Hầ
 Mới: mục "Báo cáo quân số" riêng trong menu ☰ (giám sát, tầng, zone, số công nhân) và mục QA/QC có Tracking sản lượng theo zone. Vui lòng đóng và mở lại app.
 QA/QC: Tracking sản lượng theo zone (cột, vách, dầm sàn, bể nước; cốp pha, cốt thép, bê tông) và tiến trình hầm 15 bước theo BPTC tổng thể; liên kết sang Kế hoạch & Tiến độ để biết zone nào đã đổ. Vui lòng đóng và mở lại app.
 QA/QC: thêm tab "Mặt bằng sản lượng" (zone tô màu đã đổ / đang thi công / chưa), cập nhật sản lượng B1 từ báo cáo ngày đến 25/11. Vui lòng đóng và mở lại app.
+Báo cáo quân số và sản lượng: chọn tên người báo cáo từ danh sách (giám sát hiện trường, nhân sự QA/QC). Vui lòng đóng và mở lại app.
