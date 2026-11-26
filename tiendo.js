@@ -46,27 +46,38 @@ function apl(it,j){ // quân thực tế của đầu việc ngày j (null = ch�
   const d=K.dates[j];reps().forEach(r=>{if(r.date===d&&r.ppl&&r.ppl[it.id]!=null&&r.ppl[it.id]!=='')v=+r.ppl[it.id];});return v;}
 function lastPct(it,d){const r=reps(),a=it.id,b=`${it.floor}|${it.zone}|ds|${it.kind}`;for(let i=r.length-1;i>=0;i--){const p=r[i].pct;if(!p||(d&&r[i].date>d))continue;const k=p[a]!=null&&p[a]!==''?a:p[b]!=null&&p[b]!==''?b:null;if(k)return{v:+p[k],date:r[i].date};}return null;}
 function planPct(it,i){let s=0;for(let j=0;j<i&&j<it.plan_qty.length;j++)s+=it.plan_qty[j];return Math.min(100,s/it.total*100);}
+const RATE=it=>{const q=sum(it.plan_qty),p=sum(it.plan_ppl);return q>0&&p>0?q/p:PER[it.kind];}; // KL làm được / người-ngày theo kế hoạch của chính tổ đó
+const sibTh=it=>K.items.find(x=>x.floor===it.floor&&x.zone===it.zone&&x.kind==='th');
+function calc(it,t0,d){ // KL đã làm ước tính: số quân thực tế các ngày đã qua (chỉ số < t0) × năng suất; zone đã đổ BT = 100%
+  const r=RATE(it);let est=0,pa=0,pk=0,miss=0;
+  for(let j=0;j<t0&&j<N();j++){const v=apl(it,j),pl=it.plan_ppl[j]||0;pk+=pl;if(v!=null){est+=v*r;pa+=v;}else if(pl>0)miss++;}
+  let act=Math.min(100,est/it.total*100);
+  const a=lastPct(it,d);if(a&&a.v>act)act=a.v;
+  if(it.kind==='cf'){const sb=sibTh(it),b=sb&&lastPct(sb,d);if(b&&b.v>=99.5)act=100;} // thép đã nghiệm thu thì cốp pha đã xong
+  const pz=pouredDate(it.floor,it.zone);if(pz&&pz<=d)act=100;
+  return{act,pa,pk,miss,est,r};
+}
 function info(it,d){
-  const t=ix(d),i=Math.min(Math.max(t,0),N()-1),a=lastPct(it,d),pp=planPct(it,Math.max(t,0));
-  // huy động quân: quân thực tế ÷ quân kế hoạch trong các ngày đã qua (có số thực tế)
-  let pa=0,pk=0;for(let j=0;j<Math.min(t,N());j++){const v=apl(it,j);if(it.plan_ppl[j]>0||v>0){if(v!=null){pa+=v;pk+=it.plan_ppl[j]||0;}}}
-  const hd=pk>0?pa/pk*100:null;
-  const act=a?a.v:null,cur=act==null?pp:act,rem=it.total*(1-cur/100);
-  const dl=Math.max(1,diff(t<0?K.dates[0]:d,it.pour)+1),need=rem/dl,pplNeed=need/PER[it.kind],pplPlan=it.plan_ppl[i]||0,pplAct=apl(it,i);
-  let st='na';
-  if(act!=null){const g=act-pp;st=g>=-3?'ok':g>=-10?'wn':'bd';}
-  else if(hd!=null&&pp>0){st=hd>=90?'ok':hd>=70?'wn':'bd';}
-  return{pp,act,cur,rem,dl,need,pplNeed,pplPlan,pplAct,cong:rem*DM[it.kind],st,done:cur>=99.5,hd,pa,pk};
+  const t=ix(d),t0=Math.min(Math.max(t,0),N()),i=Math.min(Math.max(t,0),N()-1),pi=ix(it.pour);
+  const pp=planPct(it,t0),c=calc(it,t0,d),act=c.act,r=c.r;
+  const done=act>=99.5,rem=done?0:it.total*(1-act/100);
+  const dl=t>pi?0:Math.max(0,pi-Math.max(t,0)+1),dlc=Math.max(1,dl);
+  let pn=0;for(let j=Math.max(t,0);j<=Math.min(pi,N()-1);j++)pn+=it.plan_ppl[j]||0;
+  const capKH=pn*r,short=done?0:Math.max(0,rem-capKH),gap=act-pp,sev=done?0:Math.max(-gap,short/it.total*100);
+  const lateF=!done&&sev>=3,xp=Math.max(0,rem/(r*dlc)-(dl>0?pn/dl:0)),st=done?'ok':(pp<0.5&&act<0.5&&!lateF)?'na':lateF?(xp>=3||gap<-10?'bd':'wn'):gap>=-3?'ok':'wn';
+  let s3=0,n3=0;for(let j=t0-1;j>=0&&n3<3;j--){const v=apl(it,j);if(v!=null){s3+=v;n3++;}}
+  const avg3=n3?s3/n3:null;
+  return{pp,act,cur:act,rem,remPp:it.total*(1-pp/100),dl,pplNeed:done?0:rem/(r*dlc),pplPlan:dl>0?pn/dl:0,pplToday:it.plan_ppl[i]||0,pplAct:apl(it,i),
+    cong:rem*DM[it.kind],congPp:it.total*(1-pp/100)*DM[it.kind],short,gap,late:!done&&sev>=3,st,done,hd:c.pk>0?c.pa/c.pk*100:null,pa:c.pa,pk:c.pk,miss:c.miss,r,avg3,eta:!done&&avg3>0?Math.ceil(rem/(avg3*r)):null,capKH};
 }
 function zones(){const m={};K.items.forEach(it=>{const k=it.floor+' '+it.zone;(m[k]=m[k]||{k,floor:it.floor,zone:it.zone,ntp:it.ntp,pour:it.pour,items:[]}).items.push(it);});return Object.values(m).sort((a,b)=>a.pour.localeCompare(b.pour)||a.k.localeCompare(b.k));}
 const zonesF=()=>zones().filter(z=>fl==='all'||z.floor===fl);
 const RANK={na:0,ok:1,wn:2,bd:3};
-function zInfo(z,d){let w=0,pp=0,ac=0,has=false,cong=0,st='na',pa=0,pk=0,ppl=0,pat=0,pah=false;
-  z.items.forEach(it=>{const x=info(it,d),ww=wgt(it);w+=ww;pp+=x.pp*ww;ac+=x.cur*ww;cong+=x.cong;if(x.act!=null)has=true;if(RANK[x.st]>RANK[st])st=x.st;pa+=x.pa;pk+=x.pk;ppl+=x.pplPlan;if(x.pplAct!=null){pat+=x.pplAct;pah=true;}});
-  if(st==='na'&&z.pour<d&&ac/w>=99)st='ok';
-  return{pp:pp/w,act:has?ac/w:null,cur:ac/w,cong,has,st,hd:pk>0?pa/pk*100:null,ppl,pat:pah?pat:null};}
+function zInfo(z,d){let w=0,pp=0,ac=0,cong=0,st='na',pa=0,pk=0,ppl=0,pat=0,pah=false,late=0;
+  z.items.forEach(it=>{const x=info(it,d),ww=wgt(it);w+=ww;pp+=x.pp*ww;ac+=x.act*ww;cong+=x.cong;if(RANK[x.st]>RANK[st])st=x.st;pa+=x.pa;pk+=x.pk;ppl+=x.pplToday;if(x.pplAct!=null){pat+=x.pplAct;pah=true;}if(x.late)late++;});
+  return{pp:pp/w,act:ac/w,cur:ac/w,cong,has:true,st,hd:pk>0?pa/pk*100:null,ppl,pat:pah?pat:null,late};}
 const COL={ok:'#2e8b57',wn:'#e0a100',bd:'#c0392b',na:'#7b8a91'};
-const LAB={ok:'Đạt kế hoạch',wn:'Chậm nhẹ',bd:'Chậm nhiều',na:'Chưa có số thực tế'};
+const LAB={ok:'Đạt kế hoạch',wn:'Chậm nhẹ',bd:'Chậm nhiều',na:'Chưa đến kế hoạch làm'};
 const FC={B1:'#6a4c93',T1:'#1d7a8c'};
 const chip=st=>`<span class="tdc" style="background:${COL[st]}">${LAB[st]}</span>`;
 const bar=(pp,act,col,hd)=>`<div class="tdb" style="background:${col}33"><i style="width:${Math.min(100,act==null?0:act)}%;background:${col}"></i><u style="left:${Math.min(100,pp)}%"></u><span class="tdbt">${act==null?'TT chưa nhập %'+(hd!=null?' (huy động '+f1(hd,0)+'%)':''):'TT '+f1(act,0)+'%'} · KH ${f1(pp,0)}%</span></div>`;
@@ -112,6 +123,10 @@ table.tdtb{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0}
 .tdbtn{border:0;border-radius:var(--r);background:var(--acc2);color:#fff;font-weight:700;padding:12px 16px;width:100%;margin-top:12px}
 .tdbtn.s{background:var(--accbg);color:var(--ink);width:auto;padding:6px 10px;margin:0;font-weight:600;font-size:12px}
 .late{color:#c0392b;font-weight:700}
+.tdcard.lt{border:1px solid #c0392b;border-left:6px solid #c0392b;background:rgba(192,57,43,.07)}
+.tdalert{background:#c0392b;color:#fff;border-radius:var(--r);padding:9px 12px;font-weight:700;font-size:13px;margin:8px 0}
+.tdok2{background:#2e8b57;color:#fff;border-radius:var(--r);padding:9px 12px;font-weight:700;font-size:13px;margin:8px 0}
+.tdm{font-size:13px;margin:6px 0}.tdcard .tdtb{font-size:12px}.tdcard .tdtb th,.tdcard .tdtb td{padding:5px 3px}.tdcard .tdtb td:first-child{white-space:nowrap}.tdtb tr.lrow td{background:rgba(192,57,43,.12)}
 .tdfh{color:#fff;font-weight:700;padding:5px 12px;border-radius:8px;margin:14px 0 6px;font-size:14px}
 .tdfb{color:#fff;border-radius:6px;padding:1px 6px;font-size:11px}
 details.tdzd{background:var(--card);border:1px solid var(--line);border-radius:var(--r);margin:8px 0}
@@ -151,14 +166,14 @@ function chart(items,flAll){
     s+=`<text x="${X(j)+pw/2}" y="${H-12}" font-size="8" text-anchor="middle" fill="#888">${x.slice(8)}</text>`;if(x.slice(8)==='01'||j===0)s+=`<text x="${X(j)+pw/2}" y="${H-2}" font-size="8" text-anchor="middle" fill="#888">/${x.slice(5,7)}</text>`;});
   if(flAll&&K.act_total)K.act_total.forEach((v,j)=>{s+=`<circle cx="${X(j)+pw/2}" cy="${Y(v)}" r="2.6" fill="none" stroke="#888" stroke-width="1.4"/>`;});
   s+=`<polyline fill="none" stroke="#3b6fb6" stroke-width="2.4" points="${khp.map((p,j)=>`${X(j)+pw/2},${Yp(p)}`).join(' ')}"/>`;
-  const pts=[];K.dates.forEach((x,j)=>{if(x>d)return;if(!reps().some(r=>r.date===x&&r.pct&&Object.keys(r.pct).length))return;let w=0,a=0;items.forEach(it=>{const l=lastPct(it,x);const cur=l?l.v:planPct(it,j+1);a+=cur*wgt(it);w+=wgt(it)});pts.push([X(j)+pw/2,Yp(a/w)]);});
+  const pts=[];K.dates.forEach((x,j)=>{if(x>=d)return;let w=0,a=0;items.forEach(it=>{a+=calc(it,j+1,x).act*wgt(it);w+=wgt(it)});if(w)pts.push([X(j)+pw/2,Yp(a/w)]);});
   if(pts.length){s+=`<polyline fill="none" stroke="#e36414" stroke-width="2.6" points="${pts.map(p=>p.join(',')).join(' ')}"/>`+pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="#e36414"/>`).join('');}
   const ti=ix(d);if(ti>=0&&ti<n)s+=`<line x1="${X(ti)+pw/2}" x2="${X(ti)+pw/2}" y1="${T-8}" y2="${T+ph}" stroke="#e36414" stroke-width="1.5" stroke-dasharray="3 3"/><text x="${X(ti)+pw/2}" y="${T-12}" font-size="9" font-weight="700" fill="#e36414" text-anchor="middle">hôm nay</text>`;
   const seen={};items.forEach(it=>{const k=it.floor+' '+it.zone;if(seen[k])return;seen[k]=1;const j=ix(it.pour);if(j<0||j>=n)return;const x=X(j)+pw/2;
     s+=`<line x1="${x}" x2="${x}" y1="${T-4}" y2="${T+ph}" stroke="${FC[it.floor]}" stroke-width="1.4" stroke-dasharray="2 2"/><polygon points="${x},${T-6} ${x-5},${T-14} ${x+5},${T-14}" fill="${FC[it.floor]}"/><text transform="translate(${x+3},${T-17}) rotate(-62)" font-size="9" font-weight="700" fill="${FC[it.floor]}">Đổ ${k}</text>`;});
   Object.keys(K.thep_ve||{}).forEach(k=>{if(!items.some(it=>it.floor+' '+it.zone===k))return;const j=ix(K.thep_ve[k]);if(j<0||j>=n)return;const x=X(j)+pw/2;s+=`<rect x="${x-4}" y="${T+ph-8}" width="8" height="8" transform="rotate(45 ${x} ${T+ph-4})" fill="#1f9d55"><title>Thép về ${k}</title></rect>`;});
   s+='</svg>';
-  return`<div class="tdw">${s}</div><div class="tdlg"><span><i style="background:#3b6fb6;opacity:.5"></i>Quân kế hoạch/ngày</span><span><i style="background:#e36414"></i>Quân thực tế/ngày</span><span><i style="background:#3b6fb6"></i>% tiến độ kế hoạch (trục phải)</span><span><i style="background:#e36414"></i>% tiến độ thực tế (khi có nhập %)</span><span>▼ đổ bê tông</span><span><i style="background:#1f9d55;transform:rotate(45deg)"></i>thép về</span>${flAll?'<span>◯ tổng quân ghi tay trong bảng giấy</span>':''}</div>`;
+  return`<div class="tdw">${s}</div><div class="tdlg"><span><i style="background:#3b6fb6;opacity:.5"></i>Quân kế hoạch/ngày</span><span><i style="background:#e36414"></i>Quân thực tế/ngày</span><span><i style="background:#3b6fb6"></i>% tiến độ kế hoạch (trục phải)</span><span><i style="background:#e36414"></i>% khối lượng đã làm (ước tính từ quân thực tế)</span><span>▼ đổ bê tông</span><span><i style="background:#1f9d55;transform:rotate(45deg)"></i>thép về</span>${flAll?'<span>◯ tổng quân ghi tay trong bảng giấy</span>':''}</div>`;
 }
 /* ---- màn hình ---- */
 const fgroup=(list,fn)=>{ // chia theo tầng khi chọn Tất cả
@@ -167,50 +182,67 @@ const fgroup=(list,fn)=>{ // chia theo tầng khi chọn Tất cả
 function mapBox(sel,mode,open){return`<details class="tdmd" data-k="map-${tab}"${open?' open':''}><summary>Mặt bằng chia zone (màu theo mức độ) · bấm để ${open?'thu gọn':'mở'}</summary>${maps(sel,mode)}</details>`;}
 function vOv(){
   const d=todayS(),Z=zonesF(),it=itemsF(),i=clampI(d);
-  let W=0,P=0,A=0,hasA=false,kq=0,tq=0,tqh=false;
-  it.forEach(x=>{const f=info(x,d),w=wgt(x);W+=w;P+=f.pp*w;A+=f.cur*w;if(f.act!=null)hasA=true;kq+=x.plan_ppl[i]||0;if(f.pplAct!=null){tq+=f.pplAct;tqh=true;}});
-  const nxt=Z.filter(z=>z.pour>=d)[0];
-  const cnt={ok:0,wn:0,bd:0,na:0};Z.filter(z=>z.pour>=d).forEach(z=>cnt[zInfo(z,d).st]++);
-  let h=head()+`<div class="tdcols"><div class="tdcol kh"><h4>Kế hoạch</h4><div class="v">${f1(P/W,0)}%</div><div class="s">tiến độ đến đầu ngày hôm nay</div><div class="v" style="margin-top:6px">${kq} người</div><div class="s">quân bố trí hôm nay</div><div class="v" style="margin-top:6px">${nxt?dm(nxt.pour):'—'}</div><div class="s">đổ BT tiếp theo${nxt?': '+esc(nxt.k):''}</div></div>
-  <div class="tdcol tt"><h4>Thực tế (từ input)</h4><div class="v">${hasA?f1(A/W,0)+'%':'chưa có'}</div><div class="s">${hasA?'% hoàn thành theo báo cáo':'chưa nhập % hoàn thành'}</div><div class="v" style="margin-top:6px">${tqh?tq+' người':'chưa có'}</div><div class="s">quân thực tế hôm nay</div><div class="v" style="margin-top:6px"><span style="color:${COL.bd}">${cnt.bd}</span> · <span style="color:${COL.wn}">${cnt.wn}</span> · <span style="color:${COL.ok}">${cnt.ok}</span></div><div class="s">zone chậm nhiều · chậm nhẹ · đạt</div></div></div>`;
+  let W=0,P=0,A=0,kq=0,tq=0,tqh=false;
+  it.forEach(x=>{const f=info(x,d),w=wgt(x);W+=w;P+=f.pp*w;A+=f.act*w;kq+=x.plan_ppl[i]||0;if(f.pplAct!=null){tq+=f.pplAct;tqh=true;}});
+  const open=Z.filter(z=>!poured(z)),dn=Z.filter(z=>poured(z)),nxt=open.filter(z=>z.pour>=d)[0]||open[0];
+  const lateZ=open.filter(z=>zInfo(z,d).late>0);
+  let h=head()+`<div class="tdcols"><div class="tdcol kh"><h4>Kế hoạch</h4><div class="v">${nxt?dm(nxt.pour):'—'}</div><div class="s">đổ BT tiếp theo${nxt?': '+esc(nxt.k):''}</div><div class="v" style="margin-top:6px">${f1(P/W,0)}%</div><div class="s">khối lượng KH đến đầu hôm nay</div><div class="v" style="margin-top:6px">${kq} người</div><div class="s">quân KH hôm nay</div></div>
+  <div class="tdcol tt"><h4>Thực tế</h4><div class="v">${dn.length}/${Z.length} zone</div><div class="s">đã đổ BT (theo báo cáo ngày)</div><div class="v" style="margin-top:6px">${f1(A/W,0)}%</div><div class="s">khối lượng đã làm (ước tính)</div><div class="v" style="margin-top:6px">${tqh?tq+' người':'chưa có'}</div><div class="s">quân thực tế hôm nay</div></div></div>`;
+  h+=lateZ.length?`<div class="tdalert">⚠ ${lateZ.length} zone đang chậm so với ngày đổ BT: ${lateZ.map(z=>esc(z.k)).join(', ')}. Quân KH không đủ để kịp, xem dòng đỏ bên dưới.</div>`:`<div class="tdok2">✔ Các zone chưa đổ đang đạt kế hoạch.</div>`;
+  h+='<h3>Ngày đổ bê tông · khối lượng · quân cần (zone chưa đổ)</h3>';
+  h+=(open.length?fgroup(open,l=>l.map(z=>zcard(z,d,false)).join('')):'<div class="tdn">Tất cả zone của lựa chọn này đã đổ BT.</div>');
+  if(dn.length)h+=`<details class="tdmd" data-k="done-ov"><summary>Zone đã đổ BT (${dn.length})</summary>${dn.map(z=>`<div class="tdcard" style="border-left-color:${COL.ok}"><b>${esc(z.k)}</b> · ${esc(z.ntp)}<div class="tdm">${pourLine(z,d)}</div></div>`).join('')}</details>`;
   h+='<h3>Biểu đồ nhân lực, tiến độ và các mốc</h3>'+chart(it,fl==='all');
   h+=stepsHtml(false);h+=mapBox(null,'go',false);
-  h+=`<h3>Bảng zone: kế hoạch và thực tế</h3>`+fgroup(Z,l=>{let t=`<div class="tdw"><table class="tdtb"><tr><th rowspan=2>Zone</th><th rowspan=2>Đổ BT</th><th colspan=2>% hoàn thành</th><th colspan=2>Quân hôm nay</th></tr><tr><th class="k">Kế hoạch</th><th class="t">Thực tế</th><th class="k">Kế hoạch</th><th class="t">Thực tế</th></tr>`;
-    l.forEach(z=>{const x=zInfo(z,d),n=diff(d,z.pour);t+=`<tr class="dz" data-z="${esc(z.k)}" style="--c:${COL[x.st]};cursor:pointer"><td><b>${esc(z.k)}</b><br><small class="tds">${esc(z.ntp)}</small></td><td>${dm(z.pour)}<br><small class="tds">${poured(z)?'<b style="color:'+COL.ok+'">✔ đã đổ '+dm(poured(z))+'</b>':n>0?'còn '+n+' ngày · chưa đổ':n===0?'hôm nay · chưa đổ':'<b style="color:'+COL.bd+'">quá hạn · chưa báo đổ</b>'}</small></td><td class="k">${f1(x.pp,0)}%</td><td class="t">${x.has?f1(x.act,0)+'%':'—'}${!x.has&&x.hd!=null?'<br><small class="tds">huy động '+f1(x.hd,0)+'%</small>':''}</td><td class="k">${x.ppl}</td><td class="t">${x.pat==null?'—':x.pat}</td></tr>`;});
-    return t+'</table></div>';});
-  h+='<div class="tds">Bấm vào dòng hoặc mặt bằng để xem chi tiết zone. Màu vạch bên trái = mức độ. "Huy động" = quân thực tế ÷ quân kế hoạch của các ngày đã qua.</div>';
-  h+=`<h3>Việc hôm nay</h3>`+fgroup(it.filter(x=>(x.plan_qty[i]||0)>0||(x.plan_ppl[i]||0)>0),l=>{let t=`<div class="tdw"><table class="tdtb"><tr><th>Zone · việc</th><th class="k">KH quân</th><th class="t">TT quân</th><th class="k">KL kế hoạch</th></tr>`;
-    l.forEach(x=>{const q=x.plan_qty[i]||0,p=x.plan_ppl[i]||0,a=apl(x,i);t+=`<tr><td>${esc(x.floor+' '+x.zone)} · ${esc(x.task)}${d===x.pour?' <b>(ngày đổ)</b>':''}</td><td class="k">${p}</td><td class="t">${a==null?'—':a}</td><td class="k">${q?f1(q,1)+' '+x.unit:'—'}</td></tr>`;});return t+'</table></div>';})||'';
-  return h+'<div class="tdn">Kế hoạch = tính từ file bố trí quân REV49 (19/11). Thực tế = số quân ghi tay trong bảng giấy 19–26/11 và báo cáo gửi trên app. Hầm B1 tính trên khối lượng còn lại tại 19/11.</div>';
+  h+=`<h3>Việc hôm nay</h3>`+(fgroup(it.filter(x=>(x.plan_qty[i]||0)>0||(x.plan_ppl[i]||0)>0),l=>{let t=`<div class="tdw"><table class="tdtb"><tr><th>Zone · việc</th><th class="k">KH quân</th><th class="t">TT quân</th><th class="k">KL kế hoạch</th></tr>`;
+    l.forEach(x=>{const q=x.plan_qty[i]||0,p=x.plan_ppl[i]||0,a=apl(x,i);t+=`<tr><td>${esc(x.floor+' '+x.zone)} · ${esc(x.task)}${d===x.pour?' <b>(ngày đổ)</b>':''}</td><td class="k">${p}</td><td class="t">${a==null?'—':a}</td><td class="k">${q?f1(q,1)+' '+x.unit:'—'}</td></tr>`;});return t+'</table></div>';})||'<div class="tds">Không có việc theo kế hoạch hôm nay.</div>');
+  return h+`<div class="tdn"><b>Cách tính.</b> Kế hoạch lấy từ file bố trí quân REV49 (19/11). <b>Khối lượng đã làm</b> = số quân thực tế các ngày đã qua (bảng giấy 19–26/11 và báo cáo quân số) × năng suất theo kế hoạch của tổ đó; zone đã đổ BT tính 100%, cốp pha tính xong khi thép đã nghiệm thu. <b>Quân cần</b> = khối lượng còn lại ÷ năng suất ÷ số ngày còn đến ngày đổ. Dòng đỏ = quân KH các ngày còn lại không đủ làm hết khối lượng còn lại. Hầm B1 tính trên khối lượng còn lại tại 19/11.</div>`;
 }
 function zoneChips(){const d=todayS();return`<div class="tdz">${zonesF().map(z=>`<button data-zs="${esc(z.k)}" aria-pressed="${z.k===zsel}" style="--c:${COL[zInfo(z,d).st]}">${esc(z.k)}</button>`).join('')}</div>`;}
 function dayGrid(it,d){
-  const a=Math.max(0,it.plan_ppl.findIndex(v=>v>0)-1),b=Math.min(N()-1,Math.max(clampI(d)+2,a+6)),t=ix(d);
-  let h='<div class="tdw"><table class="tdtb"><tr><th></th>'+K.dates.slice(a,b+1).map((x,j)=>`<th class="${a+j===t?'today':''}">${dow(x)}<br>${dm(x)}</th>`).join('')+'</tr>';
-  const row=(lab,fn,cls)=>{h+=`<tr><td>${lab}</td>`+K.dates.slice(a,b+1).map((x,j)=>`<td class="${cls}${a+j===t?' today':''}">${fn(a+j)}</td>`).join('')+'</tr>'};
-  row('Quân KH',j=>it.plan_ppl[j]||'·','k');row('Quân TT',j=>{const v=apl(it,j);return v==null?'·':v},'t');row(`KL KH (${it.unit})`,j=>it.plan_qty[j]?f1(it.plan_qty[j],1):'·','k');
+  const x=info(it,d),t=ix(d),pi=ix(it.pour),a=Math.max(0,Math.min(it.plan_ppl.findIndex(v=>v>0)-1,Math.max(t,0))),b=Math.min(N()-1,Math.max(pi,a+6,clampI(d)+2));
+  let h='<div class="tdw"><table class="tdtb"><tr><th></th>'+K.dates.slice(a,b+1).map((y,j)=>`<th class="${a+j===t?'today':''}">${dow(y)}<br>${dm(y)}${a+j===pi?'<br><b>đổ BT</b>':''}</th>`).join('')+'</tr>';
+  const row=(lab,fn,cls)=>{h+=`<tr><td>${lab}</td>`+K.dates.slice(a,b+1).map((y,j)=>{const o=fn(a+j);return`<td class="${cls}${a+j===t?' today':''}${o&&o[1]?' late':''}">${o?o[0]:'·'}</td>`;}).join('')+'</tr>'};
+  row('Quân KH',j=>it.plan_ppl[j]?[it.plan_ppl[j]]:null,'k');
+  row('Quân thực tế',j=>{const v=apl(it,j);return v==null?null:[v]},'t');
+  row('Quân cần để kịp',j=>{if(x.done||j<Math.max(t,0)||j>pi)return null;return[f1(x.pplNeed,0),x.pplNeed>(it.plan_ppl[j]||0)+0.5]},'t');
+  row(`KL KH (${it.unit})`,j=>it.plan_qty[j]?[f1(it.plan_qty[j],1)]:null,'k');
   return h+'</table></div>';}
+const KN=(it,z)=>it.kind==='th'?'Cốt thép':z.floor==='B1'?'Cốp pha đất':'Cốp pha sàn';
+const KS=(it)=>it.kind==='th'?'Thép':'Cốp pha';
+const KD=it=>it.kind==='th'?1:0;
+function thepVe(z){const th=z.items.find(i=>i.kind==='th');if(!th)return null;if(K.thep_ve&&K.thep_ve[z.k])return K.thep_ve[z.k];const j=th.plan_ppl.findIndex(v=>v>0);return j>=0?K.dates[j]:null;}
+function pourLine(z,d){const pd=poured(z),n=diff(d,z.pour);
+  if(pd){const g=diff(z.pour,pd);return`<b style="color:${COL.ok}">✔ Đã đổ BT ngày ${dm(pd)}</b> (KH ${dm(z.pour)}${g<0?' · sớm '+(-g)+' ngày':g>0?' · trễ '+g+' ngày':' · đúng KH'})`;}
+  if(n>0)return`Đổ BT theo KH: <b>${dm(z.pour)}</b> · còn ${n} ngày · chưa đổ`;
+  if(n===0)return`Đổ BT theo KH: <b>hôm nay ${dm(z.pour)}</b> · chưa có báo cáo đã đổ`;
+  return`<b style="color:${COL.bd}">Quá hạn đổ BT ${-n} ngày (KH ${dm(z.pour)}) · chưa có báo cáo đã đổ</b>`;}
+function zcard(z,d,full){
+  const zi=zInfo(z,d),m=K.kl[z.k]||{},pd=poured(z),xs=z.items.map(it=>({it,x:info(it,d)})),late=xs.filter(o=>o.x.late),tv=thepVe(z);
+  let h=`<div class="tdcard${late.length?' lt':''}" style="border-left-color:${COL[zi.st]}"><div class="tdh"><b><span class="tdfb" style="background:${FC[z.floor]}">${z.floor}</span> ${esc(z.zone)} · ${esc(z.ntp)}</b>${chip(zi.st)}</div>`;
+  h+=`<div class="tdm">${pourLine(z,d)}</div>`;
+  if(late.length)h+=`<div class="tdalert">⚠ CHẬM – quân kế hoạch còn lại không đủ để kịp ngày đổ, cần tăng quân</div>`;
+  h+=`<div class="tdw"><table class="tdtb"><tr><th>Hạng mục</th><th>Tổng</th><th class="t">Đã làm</th><th>Còn lại</th><th class="k">Quân KH</th><th class="t">Quân cần</th></tr>`;
+  xs.forEach(({it,x})=>{const dd=KD(it);h+=`<tr class="${x.late?'lrow':''}"><td><b>${KS(it)}</b><br><small>${it.unit}</small></td><td>${f1(it.total,dd)}</td><td class="t">${f1(it.total*x.act/100,dd)}<br><small>${f1(x.act,0)}%</small></td><td>${f1(x.rem,dd)}</td><td class="k">${x.done?'—':f1(x.pplPlan,0)}</td><td class="t ${x.late?'late':''}">${x.done?'xong':f1(x.pplNeed,0)}</td></tr>`;});
+  if(m.bt)h+=`<tr><td><b>Bê tông</b><br><small>m³</small></td><td>${f1(m.bt,0)}</td><td class="t">${pd?f1(m.bt,0):0}<br><small>${pd?'100':'0'}%</small></td><td>${pd?0:f1(m.bt,0)}</td><td colspan="2" class="tds" style="text-align:center">${pd?'đã đổ':'đổ '+dm(z.pour)}</td></tr>`;
+  h+='</table></div><div class="tds">Quân KH / Quân cần = người mỗi ngày, trung bình từ hôm nay đến ngày đổ BT.</div>';
+  late.forEach(({it,x})=>{h+=`<div class="tdm late">⚠ ${KN(it,z)}: còn ${f1(x.rem,KD(it))} ${it.unit} ${x.dl>0?'trong '+x.dl+' ngày':'– đã quá ngày đổ'} → cần <b>${f1(x.pplNeed,0)}</b> người/ngày, KH chỉ bố trí ${f1(x.pplPlan,0)} → <b>thiếu ${f1(Math.max(0,x.pplNeed-x.pplPlan),0)} người/ngày</b>.${x.avg3!=null?' 3 ngày qua thực tế TB '+f1(x.avg3,0)+' người/ngày'+(x.eta?' – giữ mức đó cần thêm '+x.eta+' ngày':''):''}</div>`;});
+  if(!late.length&&xs.some(o=>!o.x.done))h+=`<div class="tdm" style="color:${COL.ok}">✔ Kịp ngày đổ nếu giữ quân theo kế hoạch.</div>`;
+  const cg=xs.reduce((a,o)=>a+o.x.cong,0),pa=xs.reduce((a,o)=>a+o.x.pa,0),pk=xs.reduce((a,o)=>a+o.x.pk,0);
+  if(cg>0)h+=`<div class="tds">Công còn lại theo định mức: <b>${f1(cg,0)} công</b> (≈ ${f1(cg/HE,0)} người làm 1 ngày 11h)${pk>0?' · đã dùng từ '+dm(K.dates[0])+' đến hôm qua: '+f1(pa,0)+' người-ngày (KH '+f1(pk,0)+')':''}</div>`;
+  if(tv)h+=`<div class="tds">Thép về công trường theo KH: <b>${dm(tv)}</b> (theo dõi thép về thực tế ở app QR thép)${m.area?' · sàn '+f1(m.area,0)+' m²':''}</div>`;
+  if(full)xs.forEach(({it})=>{if(it.plan_ppl.some(v=>v>0))h+=`<details class="tdmd" data-k="dg-${esc(it.id)}"${OPEN.has('dg-'+it.id)?' open':''}><summary>Từng ngày: ${KN(it,z)}</summary>${dayGrid(it,d)}</details>`;});
+  return h+'</div>';}
 function zsum(z,d,extra){const zi=zInfo(z,d),n=diff(d,z.pour);
   return`<summary style="border-left:6px solid ${COL[zi.st]}"><div class="tdh"><b><span class="tdfb" style="background:${FC[z.floor]}">${z.floor}</span> ${esc(z.zone)} · ${esc(z.ntp)}</b>${chip(zi.st)}</div><div class="tds">KH đổ ${dm(z.pour)} · ${pourBadge(z)}${n>0&&!poured(z)?' (còn '+n+' ngày)':''}${extra?' · '+extra:''}</div>${bar(zi.pp,zi.has?zi.cur:null,COL[zi.st],zi.hd)}</summary>`;}
 function zdet(z,d,key,body,extra){const ok=OPEN.has(key)||zsel===z.k;return`<details class="tdzd" data-k="${esc(key)}"${ok?' open':''}>${zsum(z,d,extra)}<div class="tdzb">${body}</div></details>`;}
 function vZone(){
   const d=todayS(),Z=zonesF();if(zsel&&!Z.find(z=>z.k===zsel))zsel=null;
   let h=head()+mapBox(zsel,'f',true)+zoneChips();
-  const list=zsel?Z.filter(z=>z.k===zsel):Z;
-  h+='<div class="tdn">Mỗi zone thu gọn thành một dòng tổng. Bấm vào zone để mở các đầu việc (cốp pha, thép).</div>';
-  h+=fgroup(list,l=>l.map(z=>{const m=K.kl[z.k];let body=`<div class="tds">${f1(m.area,0)} m² · BT ${f1(m.bt,0)} m³</div>`;
-    z.items.forEach(it=>{const x=info(it,d),first=it.plan_ppl.findIndex(v=>v>0),last=it.plan_ppl.length-1-[...it.plan_ppl].reverse().findIndex(v=>v>0),need=x.pplNeed>x.pplPlan+0.5;
-      body+=`<div class="tdcard" style="border-left-color:${COL[x.st]}"><div class="tdh"><b>${esc(it.task)}</b>${chip(x.st)}</div><div class="tds">KL ${f1(it.total,1)} ${it.unit} · làm ${first>=0?dm(K.dates[first])+' → '+dm(K.dates[last]):'—'}</div>${bar(x.pp,x.act,COL[x.st],x.hd)}
-      <div class="tdw"><table class="tdtb"><tr><th>Chỉ tiêu</th><th class="k">Kế hoạch</th><th class="t">Thực tế</th></tr>
-      <tr><td>% hoàn thành (đầu ngày)</td><td class="k">${f1(x.pp,0)}%</td><td class="t">${x.act==null?'—':f1(x.act,0)+'%'}</td></tr>
-      <tr><td>KL còn lại (${it.unit})</td><td class="k">${f1(it.total*(1-x.pp/100),1)}</td><td class="t">${x.act==null?'—':f1(x.rem,1)}</td></tr>
-      <tr><td>Quân hôm nay</td><td class="k">${x.pplPlan}</td><td class="t">${x.pplAct==null?'—':x.pplAct}</td></tr>
-      <tr><td>Huy động quân các ngày qua</td><td class="k">100%</td><td class="t">${x.hd==null?'—':f1(x.hd,0)+'%'}</td></tr>
-      <tr><td>Số ngày còn đến ngày đổ</td><td class="k">${x.dl}</td><td class="t">${x.dl}</td></tr>
-      <tr><td>Quân cần mỗi ngày để kịp</td><td class="k">${x.pplPlan}</td><td class="t ${need?'late':''}">${f1(x.pplNeed,0)}${need?' (thiếu '+f1(x.pplNeed-x.pplPlan,0)+')':''}</td></tr>
-      <tr><td>Công còn lại theo định mức</td><td class="k">${f1(it.total*(1-x.pp/100)*DM[it.kind],0)}</td><td class="t">${f1(x.cong,0)}</td></tr></table></div>${dayGrid(it,d)}</div>`;});
-    return zdet(z,d,'zn-'+z.k,body);}).join(''));
-  return h+`<div class="tdn">"Quân cần" tính theo % thực tế nếu đã nhập, chưa nhập thì lấy % kế hoạch. Năng suất 1 người/ngày (11h): ${f1(PER.cf,2)} m² cốp pha, ${f1(PER.th,3)} tấn thép.</div>`;
+  const list=(zsel?Z.filter(z=>z.k===zsel):Z).slice().sort((a,b)=>(poured(a)?1:0)-(poured(b)?1:0)||a.pour.localeCompare(b.pour));
+  h+='<div class="tdn">Mỗi thẻ là một zone: ngày đổ BT, khối lượng tổng / đã làm / còn lại, quân KH và quân cần để kịp. Bấm "Từng ngày" để xem quân KH, thực tế và quân cần theo từng ngày.</div>';
+  h+=fgroup(list,l=>l.map(z=>zcard(z,d,true)).join(''));
+  return h+`<div class="tdn">Năng suất lấy theo kế hoạch của từng tổ (khoảng ${f1(PER.cf,1)} m² cốp pha và ${f1(PER.th,2)} tấn thép mỗi người mỗi ngày 11h theo định mức Excel).</div>`;
 }
 function vMan(){
   const d=todayS(),i=clampI(d),Z=zonesF();if(zsel&&!Z.find(z=>z.k===zsel))zsel=null;
@@ -233,13 +265,14 @@ function vPrep(){
   const live=Z.filter(z=>z.pour>=d&&!poured(z)&&(!zsel||z.k===zsel));
   h+=fgroup(live,l=>l.map(z=>{const m=K.kl[z.k],cf=z.items.find(i=>i.kind==='cf'),th=z.items.find(i=>i.kind==='th'),rows=[];
     const fd=it=>{const j=it.plan_ppl.findIndex(v=>v>0);return j>=0?K.dates[j]:null};
-    if(th)rows.push({id:z.k+'|th',n:'Thép gia công (Povina)',q:f1(th.total,1)+' tấn',need:z.floor==='T1'?(K.thep_ve[z.k]||fd(th)):fd(th)});
+    if(th)rows.push({id:z.k+'|th',n:'Thép gia công về công trường (Povina)',q:f1(th.total,1)+' tấn',need:z.floor==='T1'?(K.thep_ve[z.k]||fd(th)):fd(th)});
     if(cf&&z.floor==='T1')rows.push({id:z.k+'|cf',n:'Ván khuôn, giàn chống sàn',q:f1(cf.total,0)+' m²',need:fd(cf)});
     rows.push({id:z.k+'|bt',n:'Bê tông + bơm + đội đổ (7 người)',q:f1(m.bt,0)+' m³',need:z.pour});
     const R=rows.filter(r=>r.need).sort((a,b)=>a.need.localeCompare(b.need));
-    let late=0;R.forEach(r=>{const mm=M[r.id]||{};if(diff(d,r.need)<=3&&(mm.s||'Chưa đặt')!=='Đã về')late++;});
+    let late=0;R.filter(r=>!r.id.endsWith('|th')).forEach(r=>{const mm=M[r.id]||{};if(diff(d,r.need)<=3&&(mm.s||'Chưa đặt')!=='Đã về')late++;});
     let t=`<div class="tdw"><table class="tdtb"><tr><th rowspan=2>Hạng mục</th><th colspan=2>Kế hoạch</th><th colspan=2>Thực tế</th></tr><tr><th class="k">SL</th><th class="k">Cần</th><th class="t">Trạng thái</th><th class="t">Ngày</th></tr>`;
     R.forEach(r=>{const mm=M[r.id]||{},s=mm.s||'Chưa đặt',n=diff(d,r.need),lt=n<=3&&s!=='Đã về';
+      if(r.id.endsWith('|th')){t+=`<tr><td>${r.n}</td><td class="k">${r.q}</td><td class="k"><b>${dm(r.need)}</b><br><small>${n>0?'còn '+n+' ngày':n===0?'hôm nay':'quá '+(-n)+' ngày'}</small></td><td class="t" colspan="2" style="text-align:center;white-space:normal"><small>Thép về thực tế: lấy từ app QR thép khi tải tem lên</small></td></tr>`;return;}
       t+=`<tr><td>${r.n}</td><td class="k">${r.q}</td><td class="k ${lt?'late':''}">${dm(r.need)}<br><small>${n>0?'còn '+n+' ngày':n===0?'hôm nay':'quá '+(-n)+' ngày'}</small></td><td class="t"><select data-m="${esc(r.id)}" style="width:92px;padding:5px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink)">${ST.map(o=>`<option${o===s?' selected':''}>${o}</option>`).join('')}</select></td><td class="t"><input type="date" data-md="${esc(r.id)}" value="${mm.d||''}" style="width:118px;padding:4px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink)"></td></tr>`;});
     return zdet(z,d,'pr-'+z.k,t+'</table></div>',late?`<b class="late">${late} mục cần chú ý</b>`:'');}).join(''));
   if(!live.length)h+='<div class="tdn">Không có hạng mục cần chuẩn bị cho lựa chọn này (zone đã đổ).</div>';
