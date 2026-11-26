@@ -83,6 +83,11 @@ mark{background:var(--hl);color:inherit;border-radius:3px;padding:0 1px}
 #vq{padding:6px 10px;background:#13363f;font-size:12.5px;display:none;overflow-x:auto;white-space:nowrap}
 #vq.on{display:block}
 #vq b{color:#ffd166}
+#pp{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:20px}
+#pp.on{display:flex}#pp .bx{background:var(--card);color:var(--ink);border-radius:16px;padding:20px;max-width:340px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+#pp h3{margin:0 0 8px;font-size:18px}#pp p{margin:0 0 14px;font-size:14px;line-height:1.45;color:var(--mute)}
+#pp button{display:block;width:100%;min-height:46px;border-radius:12px;border:0;font-size:15px;font-weight:700;margin-top:8px}
+#pp .y{background:var(--acc);color:#fff}#pp .n{background:transparent;color:var(--mute);font-weight:500}
 #drv{position:absolute;left:0;right:0;bottom:0;padding:10px 16px 14px;border-top:1px solid var(--line);background:var(--card);font-size:12px;color:var(--mute)}
 
 #ins{display:none;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:#fff7e6;color:#5a3b00;font-size:13px;border-bottom:1px solid #f0d9a8}
@@ -137,6 +142,7 @@ body.dept .tabs,body.dept #sf{display:none}body.dept .hr{margin-bottom:0}body.de
 <button class="di" data-dept="hd" style="border-top:6px solid var(--line)"><span class="ic">📖</span><span><b>Hướng dẫn sử dụng</b><small>Cách dùng từng tab và bộ phận</small></span></button>
 <div id="drv"><span id="synt">Đang kiểm tra dữ liệu…</span></div>
 </nav>
+<div id="pp"><div class="bx"><h3>🔔 Bật thông báo?</h3><p>Nhận thông báo ngay trên điện thoại khi có <b>bản vẽ shop / biện pháp thi công mới</b>. Có thể tắt bất cứ lúc nào trong cài đặt máy.</p><button class="y" id="ppy" type="button">Bật thông báo</button><button class="n" id="ppn" type="button">Để sau</button></div></div>
 <main id="app"><div class="empty">Đang tải dữ liệu…</div></main>
 
 <div id="ov"><div class="bx" id="ovb"></div></div>
@@ -407,6 +413,7 @@ const GUIDE=[
 ['🏗️ Tab Bản vẽ thiết kế',`<p>Các đợt bản vẽ thiết kế do tư vấn phát hành, mới nhất ở trên. Lọc theo loại bản vẽ và phiên bản; chọn "Chỉ bản mới nhất" để bỏ các tờ đã bị thay thế.</p>`],
 ['🧱 Tab Đặt hàng thép',`<p>Mỗi đợt đặt hàng (ví dụ ĐH-008) là một dòng, bấm để mở: <b>mặt bằng theo dõi</b> (hồng = đặt đợt này, vàng = chưa đặt), bảng khối lượng, khối lượng theo đường kính và danh sách cấu kiện kèm thanh thép. Bấm nút mặt bằng để xem và phóng to.</p>`],
 ['📄 Khi đang xem bản vẽ',`<ul><li><b>‹ ›</b> hoặc nhập số trang để chuyển trang; <b>⤢</b> đổi giữa cuộn dọc và từng trang.</li><li><b>＋ －</b> phóng to, thu nhỏ; <b>⟲</b> về vừa khung.</li><li><b>⬇ PDF</b> ở thanh trên: tải cả bộ về máy.</li><li><b>✕</b> để đóng và quay lại danh sách.</li></ul>`],
+['🔔 Thông báo',`<p>Lần đầu mở app sẽ hỏi bật thông báo. Bấm <b>Bật thông báo</b> để nhận tin trên điện thoại khi có bản vẽ/BPTC mới. Trên iPhone cần "Thêm vào Màn hình chính" trước (iOS 16.4 trở lên).</p>`],
 ['❓ Gặp lỗi?',`<p>Trang không tải: kiểm tra mạng rồi cuộn lại. Thấy dữ liệu cũ: kiểm tra mạng, rồi đóng hẳn app và mở lại. Góp ý/báo lỗi: liên hệ người quản lý app (Phạm Viết Vũ).</p>`]
 ];
 function guideHtml(){return '<div class="gd"><h2>Hướng dẫn sử dụng</h2><p class="gs">Bấm vào từng mục để xem. Dành cho anh em mới dùng app.</p>'+GUIDE.map((g,i)=>`<details class="gi"${i<2?' open':''}><summary>${g[0]}</summary><div>${g[1]}</div></details>`).join('')+'</div>';}
@@ -543,6 +550,32 @@ async function syncCheck(manual){
   }catch(e){ $('#synt').textContent=VER.updated?('Dữ liệu cập nhật: '+fmtT(VER.updated)+' (offline)'):'Không có mạng'; if(manual)toast('Không kết nối được, thử lại sau'); }
 }
 window.addEventListener('online',()=>syncCheck(false));window.addEventListener('pageshow',()=>{if(!$('#v').classList.contains('on'))syncCheck(false);});
+
+/* ---------- thông báo đẩy ---------- */
+const PUSH_KEY="BCDmH-EcSg4Iwl-HhOFr8NRLcqZb8FNQXIQ7NrJHCZb4HobSrCReckbqTvUwWwN34ejKLsGXmCbgMWK3ESHOzvA",PUSH_URL="https://ppdxqcrckbwckqzumlwy.supabase.co",PUSH_ANON="sb_publishable_obBOmHzVr55kpb2eG2BwAQ_wcNW7tkg";
+function u8(b){const p='='.repeat((4-b.length%4)%4),r=atob((b+p).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(r,c=>c.charCodeAt(0));}
+async function pushSub(ask){
+  try{
+    const reg=await navigator.serviceWorker.ready;
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub){ if(!ask)return false; sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8(PUSH_KEY)}); }
+    const r=await fetch(PUSH_URL+'/rest/v1/rpc/push_save',{method:'POST',headers:{'Content-Type':'application/json',apikey:PUSH_ANON,Authorization:'Bearer '+PUSH_ANON},body:JSON.stringify({p_sub:sub.toJSON()})});
+    return r.ok;
+  }catch(e){return false;}
+}
+function pushInit(){
+  if(!('serviceWorker'in navigator&&'PushManager'in window&&'Notification'in window&&location.protocol.startsWith('http')))return;
+  if(Notification.permission==='granted'){pushSub(false);return;}
+  if(Notification.permission!=='default')return;
+  let t=0;try{t=+localStorage.getItem('bv_pp')||0;}catch(e){}
+  if(Date.now()-t<3*864e5)return;
+  setTimeout(()=>$('#pp').classList.add('on'),2500);
+}
+$('#ppn').onclick=()=>{$('#pp').classList.remove('on');try{localStorage.setItem('bv_pp',Date.now());}catch(e){}};
+$('#ppy').onclick=async()=>{$('#pp').classList.remove('on');try{localStorage.setItem('bv_pp',Date.now());}catch(e){}
+  const p=await Notification.requestPermission();
+  if(p==='granted'){const ok=await pushSub(true);toast(ok?'Đã bật thông báo ✓':'Chưa bật được, thử lại sau');}};
+pushInit();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!$('#v').classList.contains('on'))syncCheck(false);});
 setInterval(()=>{if(!document.hidden&&!$('#v').classList.contains('on'))syncCheck(false);},180000);
 

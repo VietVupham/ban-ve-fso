@@ -1,0 +1,24 @@
+name: Thong bao cap nhat
+on:
+  workflow_dispatch:
+    inputs:
+      msg:
+        description: Noi dung thong bao
+        required: false
+  push:
+    branches: [main]
+    paths: [version.json]
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 20}
+      - run: npm i web-push@3 --no-save
+      - run: node tools/push.mjs
+        env:
+          VAPID_PUBLIC: BCDmH-EcSg4Iwl-HhOFr8NRLcqZb8FNQXIQ7NrJHCZb4HobSrCReckbqTvUwWwN34ejKLsGXmCbgMWK3ESHOzvA
+          VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}
+          PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
+          MSG: ${{ github.event.inputs.msg }}
