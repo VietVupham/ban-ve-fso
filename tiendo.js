@@ -5,7 +5,10 @@ const $=s=>document.querySelector(s);
 const DM={cf:24.76/100,th:5.0},HE=1.375,PER={cf:HE/DM.cf,th:HE/DM.th};
 const WK=['CN','T2','T3','T4','T5','T6','T7'],ST=['Chưa đặt','Đã đặt','Đang về','Đã về'];
 const NTPS=['VGC','GDcons','Trọng'];
-let K=null,tab='ov',fl=(function(){try{return localStorage.getItem('td_fl')||'all'}catch(e){return'all'}})(),zsel=null,RK='td_rep',MK='td_mat',RF={fl:'B1',ntp:'VGC'};
+let K=null,tab='ov',fl=(function(){try{return localStorage.getItem('td_fl2')||'B1'}catch(e){return'B1'}})(),zsel=null,RK='td_rep2',MK='td_mat',bdate=null,OPEN=new Set(),TIMER=null;
+const SBU='https://ppdxqcrckbwckqzumlwy.supabase.co/rest/v1/rpc/',SBK='sb_publishable_obBOmHzVr55kpb2eG2BwAQ_wcNW7tkg';
+let DEV='';try{DEV=localStorage.getItem('bv_vid')||localStorage.getItem('td_dev')||'';if(!DEV){DEV='d-'+Math.random().toString(36).slice(2,12);localStorage.setItem('td_dev',DEV);}}catch(e){DEV=DEV||'d-'+Math.random().toString(36).slice(2,12);}
+const FLN={B1:'Hầm B1',T1:'Tầng 1'};
 const ld=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}};
 const sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 const f1=(x,n=1)=>(+x).toLocaleString('vi-VN',{maximumFractionDigits:n,minimumFractionDigits:0});
@@ -18,7 +21,22 @@ const todayS=()=>iso(new Date());
 const N=()=>K.dates.length;
 function ix(d){const i=K.dates.indexOf(d);return i>=0?i:(d<K.dates[0]?-1:N());}
 const clampI=d=>Math.min(Math.max(ix(d),0),N()-1);
-const reps=()=>ld(RK,[]).sort((a,b)=>(a.date+a.ses+a.ts).localeCompare(b.date+b.ses+b.ts));
+let RC=null,RS=null,SYN={t:null,err:false,busy:false};
+const setRC=a=>{RC=a;RS=null;sv(RK,a);};
+const reps=()=>{if(!RC)RC=ld(RK,[]);return RS||(RS=RC.slice().sort((a,b)=>(a.date+a.ses+a.ts).localeCompare(b.date+b.ses+b.ts)));};
+async function rpc(fn,body){const r=await fetch(SBU+fn,{method:'POST',headers:{apikey:SBK,Authorization:'Bearer '+SBK,'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)throw new Error(r.status);const t=await r.text();return t?JSON.parse(t):null;}
+async function sync(){
+  if(SYN.busy)return false;SYN.busy=true;let ch=false;
+  try{
+    reps();
+    for(const r of RC.filter(x=>!x.sy)){const o=Object.assign({},r);delete o.sy;await rpc('td_save',{p:o});r.sy=true;ch=true;}
+    const L=await rpc('td_list',{p_from:iso(new Date(Date.now()-45*864e5))})||[];
+    const m={};RC.forEach(r=>m[r.id]=r);const ids=new Set();
+    L.forEach(o=>{ids.add(o.id);const n=Object.assign({},o.data,{sy:true});if(!m[o.id]||JSON.stringify(m[o.id])!==JSON.stringify(n))ch=true;m[o.id]=n;});
+    const nr=Object.values(m).filter(r=>!r.sy||ids.has(r.id));if(nr.length!==RC.length)ch=true;
+    setRC(nr);SYN={t:Date.now(),err:false,busy:false};
+  }catch(e){SYN.err=true;SYN.busy=false;}
+  SYN.busy=false;return ch;}
 const wgt=it=>it.total*DM[it.kind];
 const sum=a=>a.reduce((x,y)=>x+(+y||0),0);
 const itemsF=()=>K.items.filter(it=>fl==='all'||it.floor===fl);
@@ -51,13 +69,12 @@ const COL={ok:'#2e8b57',wn:'#e0a100',bd:'#c0392b',na:'#7b8a91'};
 const LAB={ok:'Đạt kế hoạch',wn:'Chậm nhẹ',bd:'Chậm nhiều',na:'Chưa có số thực tế'};
 const FC={B1:'#6a4c93',T1:'#1d7a8c'};
 const chip=st=>`<span class="tdc" style="background:${COL[st]}">${LAB[st]}</span>`;
-const bar=(pp,act,col)=>`<div class="tdb"><i style="width:${Math.min(100,act==null?0:act)}%;background:${col}"></i><u style="left:${Math.min(100,pp)}%"></u></div>`;
+const bar=(pp,act,col,hd)=>`<div class="tdb" style="background:${col}33"><i style="width:${Math.min(100,act==null?0:act)}%;background:${col}"></i><u style="left:${Math.min(100,pp)}%"></u><span class="tdbt">${act==null?'TT chưa nhập %'+(hd!=null?' (huy động '+f1(hd,0)+'%)':''):'TT '+f1(act,0)+'%'} · KH ${f1(pp,0)}%</span></div>`;
 function css(){if($('#tdcss'))return;const s=document.createElement('style');s.id='tdcss';s.textContent=`
 #tdr{max-width:980px;margin:0 auto;padding:10px 12px calc(40px + env(safe-area-inset-bottom))}
 #tdr h3{font-size:15px;margin:18px 0 6px}
 .tdfl{position:sticky;top:0;z-index:3;background:var(--bg);padding:6px 0;display:flex;gap:6px}
-.tdfl button{flex:1;border:2px solid var(--line);background:var(--card);border-radius:10px;padding:9px 6px;font-weight:700;font-size:14px}
-.tdfl button[aria-pressed=true]{color:#fff;border-color:transparent}
+.tdfl{align-items:center}.tdfl label{font-weight:700;font-size:14px}.tdfl select{flex:1;border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:10px;font-weight:700;font-size:15px}
 .tdt{display:flex;gap:6px;overflow-x:auto;margin:6px 0 10px;scrollbar-width:none}.tdt::-webkit-scrollbar{display:none}
 .tdt button{flex:1 0 auto;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:8px 14px;font-weight:600;white-space:nowrap}
 .tdt button[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:#fff}
@@ -69,8 +86,8 @@ function css(){if($('#tdcss'))return;const s=document.createElement('style');s.i
 .tdcard{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--mute);border-radius:var(--r);padding:10px 12px;margin:8px 0}
 .tdh{display:flex;justify-content:space-between;gap:8px;align-items:center}.tdh b{font-size:15px}
 .tds{font-size:12.5px;color:var(--mute)}
-.tdb{position:relative;height:12px;border-radius:6px;background:var(--line);margin:7px 0 3px}
-.tdb i{position:absolute;left:0;top:0;bottom:0;border-radius:6px}.tdb u{position:absolute;top:-3px;bottom:-3px;width:3px;background:#3b6fb6;text-decoration:none;border-radius:2px}
+.tdb{position:relative;height:20px;border-radius:6px;background:var(--line);margin:8px 0 4px}.tdbt{position:absolute;left:8px;top:0;line-height:20px;font-size:11.5px;font-weight:700;color:#111;text-shadow:0 0 3px #fff,0 0 3px #fff}
+.tdb i{position:absolute;left:0;top:0;bottom:0;border-radius:6px}.tdb u{position:absolute;top:-3px;bottom:-3px;width:3px;z-index:1;background:#3b6fb6;text-decoration:none;border-radius:2px}
 .tdc{color:#fff;border-radius:999px;font-size:11.5px;padding:2px 9px;white-space:nowrap}
 .tdn{font-size:12.5px;background:var(--accbg);border-radius:var(--r);padding:8px 10px;margin:8px 0}
 .tdw{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -95,10 +112,20 @@ table.tdtb{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0}
 .tdbtn{border:0;border-radius:var(--r);background:var(--acc2);color:#fff;font-weight:700;padding:12px 16px;width:100%;margin-top:12px}
 .tdbtn.s{background:var(--accbg);color:var(--ink);width:auto;padding:6px 10px;margin:0;font-weight:600;font-size:12px}
 .late{color:#c0392b;font-weight:700}
+.tdfh{color:#fff;font-weight:700;padding:5px 12px;border-radius:8px;margin:14px 0 6px;font-size:14px}
+.tdfb{color:#fff;border-radius:6px;padding:1px 6px;font-size:11px}
+details.tdzd{background:var(--card);border:1px solid var(--line);border-radius:var(--r);margin:8px 0}
+details.tdzd>summary{list-style:none;cursor:pointer;padding:10px 12px;border-radius:var(--r)}details.tdzd>summary::-webkit-details-marker{display:none}
+details.tdzd[open]>summary{border-bottom:1px solid var(--line)}.tdzb{padding:6px 10px 10px}
+details.tdmd>summary{cursor:pointer;font-weight:700;font-size:14px;padding:10px 12px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);margin:8px 0}
+.tdbd{display:flex;gap:6px;align-items:center;margin:6px 0}
+.tdpop{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}
+.tdpb{background:var(--card);color:var(--ink);border-radius:14px;padding:22px 20px;max-width:340px;width:100%;text-align:center}
+.tdok{width:56px;height:56px;border-radius:50%;background:#2e8b57;color:#fff;font-size:34px;line-height:56px;margin:0 auto 8px}
 .tdsvg{width:100%;height:auto;min-width:640px}
 `;document.head.appendChild(s);}
 const head=()=>{const d=todayS();return`<div class="tds">Kết cấu vành khăn Hầm B1 và Tầng 1 · hôm nay ${dow(d)} ${dm(d)}</div>`};
-function flbar(){return`<div class="tdfl">`+[['all','Tất cả','#3d4a50'],['B1','Hầm B1',FC.B1],['T1','Tầng 1',FC.T1]].map(o=>`<button data-fl="${o[0]}" aria-pressed="${fl===o[0]}" ${fl===o[0]?`style="background:${o[2]}"`:''}>${o[1]}</button>`).join('')+'</div>';}
+function flbar(){return`<div class="tdfl"><label for="flsel">Tầng</label><select id="flsel" style="border-color:${fl==='all'?'#3d4a50':FC[fl]}"><option value="B1"${fl==='B1'?' selected':''}>Hầm B1</option><option value="T1"${fl==='T1'?' selected':''}>Tầng 1</option><option value="all"${fl==='all'?' selected':''}>Tất cả (chia theo tầng)</option></select></div>`;}
 const legend=()=>`<div class="tdlg">${['ok','wn','bd','na'].map(k=>`<span><i style="background:${COL[k]}"></i>${LAB[k]}</span>`).join('')}</div>`;
 function maps(sel,mode){ // mode 'go' = bấm pin mở tab Zone; 'f' = lọc
   const d=todayS(),fls=fl==='all'?['B1','T1']:[fl];let h='';
@@ -133,6 +160,10 @@ function chart(items,flAll){
   return`<div class="tdw">${s}</div><div class="tdlg"><span><i style="background:#3b6fb6;opacity:.5"></i>Quân kế hoạch/ngày</span><span><i style="background:#e36414"></i>Quân thực tế/ngày</span><span><i style="background:#3b6fb6"></i>% tiến độ kế hoạch (trục phải)</span><span><i style="background:#e36414"></i>% tiến độ thực tế (khi có nhập %)</span><span>▼ đổ bê tông</span><span><i style="background:#1f9d55;transform:rotate(45deg)"></i>thép về</span>${flAll?'<span>◯ tổng quân ghi tay trong bảng giấy</span>':''}</div>`;
 }
 /* ---- màn hình ---- */
+const fgroup=(list,fn)=>{ // chia theo tầng khi chọn Tất cả
+  if(fl!=='all')return list.length?fn(list):'';
+  return ['B1','T1'].map(f=>{const l=list.filter(x=>(x.floor||x.z&&x.z.floor)===f);return l.length?`<div class="tdfh" style="background:${FC[f]}">${FLN[f]}</div>`+fn(l):''}).join('');};
+function mapBox(sel,mode,open){return`<details class="tdmd" data-k="map-${tab}"${open?' open':''}><summary>Mặt bằng chia zone (màu theo mức độ) · bấm để ${open?'thu gọn':'mở'}</summary>${maps(sel,mode)}</details>`;}
 function vOv(){
   const d=todayS(),Z=zonesF(),it=itemsF(),i=clampI(d);
   let W=0,P=0,A=0,hasA=false,kq=0,tq=0,tqh=false;
@@ -142,14 +173,14 @@ function vOv(){
   let h=head()+`<div class="tdcols"><div class="tdcol kh"><h4>Kế hoạch</h4><div class="v">${f1(P/W,0)}%</div><div class="s">tiến độ đến đầu ngày hôm nay</div><div class="v" style="margin-top:6px">${kq} người</div><div class="s">quân bố trí hôm nay</div><div class="v" style="margin-top:6px">${nxt?dm(nxt.pour):'—'}</div><div class="s">đổ BT tiếp theo${nxt?': '+esc(nxt.k):''}</div></div>
   <div class="tdcol tt"><h4>Thực tế (từ input)</h4><div class="v">${hasA?f1(A/W,0)+'%':'chưa có'}</div><div class="s">${hasA?'% hoàn thành theo báo cáo':'chưa nhập % hoàn thành'}</div><div class="v" style="margin-top:6px">${tqh?tq+' người':'chưa có'}</div><div class="s">quân thực tế hôm nay</div><div class="v" style="margin-top:6px"><span style="color:${COL.bd}">${cnt.bd}</span> · <span style="color:${COL.wn}">${cnt.wn}</span> · <span style="color:${COL.ok}">${cnt.ok}</span></div><div class="s">zone chậm nhiều · chậm nhẹ · đạt</div></div></div>`;
   h+='<h3>Biểu đồ nhân lực, tiến độ và các mốc</h3>'+chart(it,fl==='all');
-  h+='<h3>Mặt bằng chia zone (màu theo mức độ)</h3>'+maps(null,'go');
-  h+=`<h3>Bảng zone: kế hoạch và thực tế</h3><div class="tdw"><table class="tdtb"><tr><th rowspan=2>Zone</th><th rowspan=2>Đổ BT</th><th colspan=2>% hoàn thành</th><th colspan=2>Quân hôm nay</th></tr><tr><th class="k">Kế hoạch</th><th class="t">Thực tế</th><th class="k">Kế hoạch</th><th class="t">Thực tế</th></tr>`;
-  Z.forEach(z=>{const x=zInfo(z,d),n=diff(d,z.pour);h+=`<tr class="dz" data-z="${esc(z.k)}" style="--c:${COL[x.st]};cursor:pointer"><td><b>${esc(z.k)}</b><br><small class="tds">${esc(z.ntp)}</small></td><td>${dm(z.pour)}<br><small class="tds">${n>0?'còn '+n+' ngày':n===0?'hôm nay':'đã đổ'}</small></td><td class="k">${f1(x.pp,0)}%</td><td class="t">${x.has?f1(x.act,0)+'%':'—'}${!x.has&&x.hd!=null?'<br><small class="tds">huy động '+f1(x.hd,0)+'%</small>':''}</td><td class="k">${x.ppl}</td><td class="t">${x.pat==null?'—':x.pat}</td></tr>`;});
-  h+='</table></div><div class="tds">Bấm vào dòng hoặc mặt bằng để xem chi tiết zone. Màu vạch bên trái = mức độ. "Huy động" = quân thực tế ÷ quân kế hoạch của các ngày đã qua.</div>';
-  h+=`<h3>Việc hôm nay</h3><div class="tdw"><table class="tdtb"><tr><th>Zone · việc</th><th class="k">KH quân</th><th class="t">TT quân</th><th class="k">KL kế hoạch</th></tr>`;let any=false;
-  it.forEach(x=>{const q=x.plan_qty[i]||0,p=x.plan_ppl[i]||0,a=apl(x,i);if(q>0||p>0){any=true;h+=`<tr><td>${esc(x.floor+' '+x.zone)} · ${esc(x.task)}${d===x.pour?' <b>(ngày đổ)</b>':''}</td><td class="k">${p}</td><td class="t">${a==null?'—':a}</td><td class="k">${q?f1(q,1)+' '+x.unit:'—'}</td></tr>`;}});
-  if(!any)h+='<tr><td colspan=4>Không có việc trong kế hoạch ngày này.</td></tr>';
-  return h+'</table></div><div class="tdn">Kế hoạch = tính từ file bố trí quân REV49 (19/11). Thực tế = số quân ghi tay trong bảng giấy 19–26/11 và báo cáo nhập trên app. Hầm B1 tính trên khối lượng còn lại tại 19/11.</div>';
+  h+=mapBox(null,'go',false);
+  h+=`<h3>Bảng zone: kế hoạch và thực tế</h3>`+fgroup(Z,l=>{let t=`<div class="tdw"><table class="tdtb"><tr><th rowspan=2>Zone</th><th rowspan=2>Đổ BT</th><th colspan=2>% hoàn thành</th><th colspan=2>Quân hôm nay</th></tr><tr><th class="k">Kế hoạch</th><th class="t">Thực tế</th><th class="k">Kế hoạch</th><th class="t">Thực tế</th></tr>`;
+    l.forEach(z=>{const x=zInfo(z,d),n=diff(d,z.pour);t+=`<tr class="dz" data-z="${esc(z.k)}" style="--c:${COL[x.st]};cursor:pointer"><td><b>${esc(z.k)}</b><br><small class="tds">${esc(z.ntp)}</small></td><td>${dm(z.pour)}<br><small class="tds">${n>0?'còn '+n+' ngày':n===0?'hôm nay':'đã đổ'}</small></td><td class="k">${f1(x.pp,0)}%</td><td class="t">${x.has?f1(x.act,0)+'%':'—'}${!x.has&&x.hd!=null?'<br><small class="tds">huy động '+f1(x.hd,0)+'%</small>':''}</td><td class="k">${x.ppl}</td><td class="t">${x.pat==null?'—':x.pat}</td></tr>`;});
+    return t+'</table></div>';});
+  h+='<div class="tds">Bấm vào dòng hoặc mặt bằng để xem chi tiết zone. Màu vạch bên trái = mức độ. "Huy động" = quân thực tế ÷ quân kế hoạch của các ngày đã qua.</div>';
+  h+=`<h3>Việc hôm nay</h3>`+fgroup(it.filter(x=>(x.plan_qty[i]||0)>0||(x.plan_ppl[i]||0)>0),l=>{let t=`<div class="tdw"><table class="tdtb"><tr><th>Zone · việc</th><th class="k">KH quân</th><th class="t">TT quân</th><th class="k">KL kế hoạch</th></tr>`;
+    l.forEach(x=>{const q=x.plan_qty[i]||0,p=x.plan_ppl[i]||0,a=apl(x,i);t+=`<tr><td>${esc(x.floor+' '+x.zone)} · ${esc(x.task)}${d===x.pour?' <b>(ngày đổ)</b>':''}</td><td class="k">${p}</td><td class="t">${a==null?'—':a}</td><td class="k">${q?f1(q,1)+' '+x.unit:'—'}</td></tr>`;});return t+'</table></div>';})||'';
+  return h+'<div class="tdn">Kế hoạch = tính từ file bố trí quân REV49 (19/11). Thực tế = số quân ghi tay trong bảng giấy 19–26/11 và báo cáo gửi trên app. Hầm B1 tính trên khối lượng còn lại tại 19/11.</div>';
 }
 function zoneChips(){const d=todayS();return`<div class="tdz">${zonesF().map(z=>`<button data-zs="${esc(z.k)}" aria-pressed="${z.k===zsel}" style="--c:${COL[zInfo(z,d).st]}">${esc(z.k)}</button>`).join('')}</div>`;}
 function dayGrid(it,d){
@@ -158,16 +189,17 @@ function dayGrid(it,d){
   const row=(lab,fn,cls)=>{h+=`<tr><td>${lab}</td>`+K.dates.slice(a,b+1).map((x,j)=>`<td class="${cls}${a+j===t?' today':''}">${fn(a+j)}</td>`).join('')+'</tr>'};
   row('Quân KH',j=>it.plan_ppl[j]||'·','k');row('Quân TT',j=>{const v=apl(it,j);return v==null?'·':v},'t');row(`KL KH (${it.unit})`,j=>it.plan_qty[j]?f1(it.plan_qty[j],1):'·','k');
   return h+'</table></div>';}
+function zsum(z,d,extra){const zi=zInfo(z,d),n=diff(d,z.pour);
+  return`<summary style="border-left:6px solid ${COL[zi.st]}"><div class="tdh"><b><span class="tdfb" style="background:${FC[z.floor]}">${z.floor}</span> ${esc(z.zone)} · ${esc(z.ntp)}</b>${chip(zi.st)}</div><div class="tds">đổ ${dm(z.pour)} (${n>0?'còn '+n+' ngày':n===0?'hôm nay':'đã đổ'})${extra?' · '+extra:''}</div>${bar(zi.pp,zi.has?zi.cur:null,COL[zi.st],zi.hd)}</summary>`;}
+function zdet(z,d,key,body,extra){const ok=OPEN.has(key)||zsel===z.k;return`<details class="tdzd" data-k="${esc(key)}"${ok?' open':''}>${zsum(z,d,extra)}<div class="tdzb">${body}</div></details>`;}
 function vZone(){
   const d=todayS(),Z=zonesF();if(zsel&&!Z.find(z=>z.k===zsel))zsel=null;
-  let h=head()+maps(zsel,'f')+zoneChips();
+  let h=head()+mapBox(zsel,'f',true)+zoneChips();
   const list=zsel?Z.filter(z=>z.k===zsel):Z;
-  if(!zsel)h+='<div class="tdn">Đang xem tất cả zone của '+(fl==='all'?'cả hai tầng':fl==='B1'?'hầm B1':'tầng 1')+'. Bấm một zone trên mặt bằng để chỉ xem zone đó.</div>';
-  list.forEach(z=>{const zi=zInfo(z,d),m=K.kl[z.k];
-    h+=`<div class="tdcard" style="border-left-color:${COL[zi.st]}"><div class="tdh"><b>${esc(z.k)} · ${esc(z.ntp)}</b>${chip(zi.st)}</div><div class="tds">${f1(m.area,0)} m² · BT ${f1(m.bt,0)} m³ · đổ ${dm(z.pour)} (${dow(z.pour)})</div>${bar(zi.pp,zi.has?zi.cur:null,COL[zi.st])}</div>`;
-    z.items.forEach(it=>{const x=info(it,d),first=it.plan_ppl.findIndex(v=>v>0),last=it.plan_ppl.length-1-[...it.plan_ppl].reverse().findIndex(v=>v>0);
-      const need=x.pplNeed>x.pplPlan+0.5;
-      h+=`<div class="tdcard" style="border-left-color:${COL[x.st]};margin-left:10px"><div class="tdh"><b>${esc(it.task)}</b>${chip(x.st)}</div><div class="tds">KL ${f1(it.total,1)} ${it.unit} · làm ${first>=0?dm(K.dates[first])+' → '+dm(K.dates[last]):'—'}</div>
+  h+='<div class="tdn">Mỗi zone thu gọn thành một dòng tổng. Bấm vào zone để mở các đầu việc (cốp pha, thép).</div>';
+  h+=fgroup(list,l=>l.map(z=>{const m=K.kl[z.k];let body=`<div class="tds">${f1(m.area,0)} m² · BT ${f1(m.bt,0)} m³</div>`;
+    z.items.forEach(it=>{const x=info(it,d),first=it.plan_ppl.findIndex(v=>v>0),last=it.plan_ppl.length-1-[...it.plan_ppl].reverse().findIndex(v=>v>0),need=x.pplNeed>x.pplPlan+0.5;
+      body+=`<div class="tdcard" style="border-left-color:${COL[x.st]}"><div class="tdh"><b>${esc(it.task)}</b>${chip(x.st)}</div><div class="tds">KL ${f1(it.total,1)} ${it.unit} · làm ${first>=0?dm(K.dates[first])+' → '+dm(K.dates[last]):'—'}</div>${bar(x.pp,x.act,COL[x.st],x.hd)}
       <div class="tdw"><table class="tdtb"><tr><th>Chỉ tiêu</th><th class="k">Kế hoạch</th><th class="t">Thực tế</th></tr>
       <tr><td>% hoàn thành (đầu ngày)</td><td class="k">${f1(x.pp,0)}%</td><td class="t">${x.act==null?'—':f1(x.act,0)+'%'}</td></tr>
       <tr><td>KL còn lại (${it.unit})</td><td class="k">${f1(it.total*(1-x.pp/100),1)}</td><td class="t">${x.act==null?'—':f1(x.rem,1)}</td></tr>
@@ -175,91 +207,125 @@ function vZone(){
       <tr><td>Huy động quân các ngày qua</td><td class="k">100%</td><td class="t">${x.hd==null?'—':f1(x.hd,0)+'%'}</td></tr>
       <tr><td>Số ngày còn đến ngày đổ</td><td class="k">${x.dl}</td><td class="t">${x.dl}</td></tr>
       <tr><td>Quân cần mỗi ngày để kịp</td><td class="k">${x.pplPlan}</td><td class="t ${need?'late':''}">${f1(x.pplNeed,0)}${need?' (thiếu '+f1(x.pplNeed-x.pplPlan,0)+')':''}</td></tr>
-      <tr><td>Công còn lại theo định mức</td><td class="k">${f1(it.total*(1-x.pp/100)*DM[it.kind],0)}</td><td class="t">${f1(x.cong,0)}</td></tr></table></div>${dayGrid(it,d)}</div>`;});});
+      <tr><td>Công còn lại theo định mức</td><td class="k">${f1(it.total*(1-x.pp/100)*DM[it.kind],0)}</td><td class="t">${f1(x.cong,0)}</td></tr></table></div>${dayGrid(it,d)}</div>`;});
+    return zdet(z,d,'zn-'+z.k,body);}).join(''));
   return h+`<div class="tdn">"Quân cần" tính theo % thực tế nếu đã nhập, chưa nhập thì lấy % kế hoạch. Năng suất 1 người/ngày (11h): ${f1(PER.cf,2)} m² cốp pha, ${f1(PER.th,3)} tấn thép.</div>`;
 }
 function vMan(){
   const d=todayS(),i=clampI(d),Z=zonesF();if(zsel&&!Z.find(z=>z.k===zsel))zsel=null;
   const its=itemsF().filter(it=>!zsel||(it.floor+' '+it.zone)===zsel);
-  let h=head()+maps(zsel,'f')+zoneChips()+'<h3>Quân theo ngày: kế hoạch và thực tế</h3>'+chart(its,fl==='all'&&!zsel);
-  h+='<h3>Tổ đội: cần bao nhiêu quân để kịp tiến độ</h3><div class="tdw"><table class="tdtb"><tr><th rowspan=2>Tổ</th><th rowspan=2>Cam kết</th><th class="k">Kế hoạch</th><th class="t">Thực tế</th><th rowspan=2>Cần</th></tr><tr><th class="k">hôm nay</th><th class="t">hôm nay</th></tr>';
+  let h=head()+mapBox(zsel,'f',true)+zoneChips()+'<h3>Quân theo ngày: kế hoạch và thực tế</h3>'+chart(its,fl==='all'&&!zsel);
+  h+='<h3>Tổ đội: cần bao nhiêu quân để kịp tiến độ</h3>';
   const CM={VGC:'VGC cộng',GDcons:'GDcons – ban ngày','Trọng':'Tổ Trọng'};
-  NTPS.forEach(n=>{let pl=0,tt=0,th=false,nd=0;its.filter(it=>it.ntp===n&&it.pour>=d).forEach(it=>{const x=info(it,d);if(x.done)return;if((it.plan_ppl[i]||0)>0||(x.pp>0&&x.cur<x.pp)){pl+=it.plan_ppl[i]||0;nd+=x.pplNeed;}});
-    its.filter(it=>it.ntp===n).forEach(it=>{const v=apl(it,i);if(v!=null){tt+=v;th=true;}});const cm=K.commit[CM[n]][i];
-    h+=`<tr><td><b>${n}</b></td><td>${cm}</td><td class="k">${pl}</td><td class="t">${th?tt:'—'}</td><td class="${nd>cm+0.5?'late':''}">${f1(nd,0)}</td></tr>`;});
-  h+='</table></div>';
-  h+='<h3>Chi tiết theo ngày (Kế hoạch | Thực tế)</h3><div class="tdw"><table class="tdtb"><tr><th rowspan=2>Ngày</th>'+NTPS.map(n=>`<th colspan=2>${n}</th>`).join('')+'<th colspan=2>Tổng</th></tr><tr>'+[...NTPS,'Tổng'].map(()=>'<th class="k">KH</th><th class="t">TT</th>').join('')+'</tr>';
-  K.dates.forEach((x,j)=>{if(j<Math.max(0,i-5)||j>i+7)return;let cells='',tk=0,tt=0,ta=false;
-    NTPS.forEach(n=>{const l=its.filter(it=>it.ntp===n);const k=sum(l.map(it=>it.plan_ppl[j]));let t=0,a=false;l.forEach(it=>{const v=apl(it,j);if(v!=null){t+=v;a=true}});tk+=k;if(a){tt+=t;ta=true}cells+=`<td class="k">${k||'·'}</td><td class="t">${a?t:'·'}</td>`;});
-    h+=`<tr><td class="${j===i?'today':''}">${dow(x)} ${dm(x)}</td>${cells}<td class="k"><b>${tk}</b></td><td class="t"><b>${ta?tt:'·'}</b></td></tr>`;});
-  return h+'</table></div><div class="tds">Ô "·" = chưa có số. Thực tế ghi tay trong bảng giấy chỉ có từ 19/11.</div>';
+  const tbl=(fi)=>{const l0=its.filter(it=>!fi||it.floor===fi);let t='<div class="tdw"><table class="tdtb"><tr><th rowspan=2>Tổ</th><th rowspan=2>Cam kết</th><th class="k">Kế hoạch</th><th class="t">Thực tế</th><th rowspan=2>Cần</th></tr><tr><th class="k">hôm nay</th><th class="t">hôm nay</th></tr>';
+    NTPS.forEach(n=>{let pl=0,tt=0,th=false,nd=0;l0.filter(it=>it.ntp===n&&it.pour>=d).forEach(it=>{const x=info(it,d);if(x.done)return;if((it.plan_ppl[i]||0)>0||(x.pp>0&&x.cur<x.pp)){pl+=it.plan_ppl[i]||0;nd+=x.pplNeed;}});
+      l0.filter(it=>it.ntp===n).forEach(it=>{const v=apl(it,i);if(v!=null){tt+=v;th=true;}});const cm=K.commit[CM[n]][i];
+      t+=`<tr><td><b>${n}</b></td><td>${fi?'—':cm}</td><td class="k">${pl}</td><td class="t">${th?tt:'—'}</td><td class="${!fi&&nd>cm+0.5?'late':''}">${f1(nd,0)}</td></tr>`;});return t+'</table></div>';};
+  h+=fl==='all'?['B1','T1'].map(f=>`<div class="tdfh" style="background:${FC[f]}">${FLN[f]}</div>`+tbl(f)).join(''):tbl(fl);
+  h+='<div class="tds">Cam kết là số người tổ cam kết cho cả hai tầng (chỉ hiện ở bảng một tầng khi chọn tầng cụ thể là "—").</div>';
+  h+='<h3>Theo zone: quân kế hoạch và thực tế từng ngày</h3>'+fgroup(Z.filter(z=>!zsel||z.k===zsel),l=>l.map(z=>zdet(z,d,'mn-'+z.k,z.items.map(it=>`<div class="tdcard" style="border-left-color:${COL[info(it,d).st]}"><b>${esc(it.task)}</b> <span class="tds">· ${esc(z.ntp)}</span>${dayGrid(it,d)}</div>`).join(''))).join(''));
+  return h+'<div class="tds">Ô "·" = chưa có số. Thực tế ghi tay trong bảng giấy chỉ có từ 19/11.</div>';
 }
 function vPrep(){
-  const d=todayS(),M=ld(MK,{}),Z=zonesF();if(zsel&&!Z.find(z=>z.k===zsel))zsel=null;let rows=[];
-  Z.filter(z=>z.pour>=d&&(!zsel||z.k===zsel)).forEach(z=>{const m=K.kl[z.k],cf=z.items.find(i=>i.kind==='cf'),th=z.items.find(i=>i.kind==='th');
+  const d=todayS(),M=ld(MK,{}),Z=zonesF();if(zsel&&!Z.find(z=>z.k===zsel))zsel=null;
+  let h=head()+mapBox(zsel,'f',true)+zoneChips()+`<div class="tdn">Danh mục sơ bộ theo khối lượng kế hoạch (chưa rà biện pháp thi công). Cột Kế hoạch: số lượng và ngày cần. Cột Thực tế: cập nhật trạng thái và ngày đã đặt/về. Dòng sắp đến hạn hoặc quá hạn mà chưa về hiện màu đỏ. Bấm zone để mở.</div>`;
+  const live=Z.filter(z=>z.pour>=d&&(!zsel||z.k===zsel));
+  h+=fgroup(live,l=>l.map(z=>{const m=K.kl[z.k],cf=z.items.find(i=>i.kind==='cf'),th=z.items.find(i=>i.kind==='th'),rows=[];
     const fd=it=>{const j=it.plan_ppl.findIndex(v=>v>0);return j>=0?K.dates[j]:null};
-    if(th)rows.push({id:z.k+'|th',z,g:'Thép',n:'thép gia công (Povina)',q:f1(th.total,1)+' tấn',need:z.floor==='T1'?(K.thep_ve[z.k]||fd(th)):fd(th)});
-    if(cf&&z.floor==='T1')rows.push({id:z.k+'|cf',z,g:'Cốp pha',n:'ván khuôn, giàn chống sàn',q:f1(cf.total,0)+' m²',need:fd(cf)});
-    rows.push({id:z.k+'|bt',z,g:'Bê tông & thiết bị',n:'bê tông + bơm + đội đổ (7 người)',q:f1(m.bt,0)+' m³',need:z.pour});});
-  rows=rows.filter(r=>r.need).sort((a,b)=>a.need.localeCompare(b.need));
-  let h=head()+maps(zsel,'f')+zoneChips()+`<div class="tdn">Danh mục sơ bộ theo khối lượng kế hoạch (chưa rà biện pháp thi công). Cột Kế hoạch: số lượng và ngày cần. Cột Thực tế: anh cập nhật trạng thái và ngày đã đặt/về. Dòng sắp đến hạn hoặc quá hạn mà chưa về hiện màu đỏ.</div>`;
-  ['Thép','Cốp pha','Bê tông & thiết bị'].forEach(g=>{const R=rows.filter(r=>r.g===g);if(!R.length)return;
-    h+=`<h3>${g}</h3><div class="tdw"><table class="tdtb"><tr><th rowspan=2>Hạng mục</th><th colspan=2>Kế hoạch</th><th colspan=2>Thực tế</th></tr><tr><th class="k">SL</th><th class="k">Cần</th><th class="t">Trạng thái</th><th class="t">Ngày</th></tr>`;
+    if(th)rows.push({id:z.k+'|th',n:'Thép gia công (Povina)',q:f1(th.total,1)+' tấn',need:z.floor==='T1'?(K.thep_ve[z.k]||fd(th)):fd(th)});
+    if(cf&&z.floor==='T1')rows.push({id:z.k+'|cf',n:'Ván khuôn, giàn chống sàn',q:f1(cf.total,0)+' m²',need:fd(cf)});
+    rows.push({id:z.k+'|bt',n:'Bê tông + bơm + đội đổ (7 người)',q:f1(m.bt,0)+' m³',need:z.pour});
+    const R=rows.filter(r=>r.need).sort((a,b)=>a.need.localeCompare(b.need));
+    let late=0;R.forEach(r=>{const mm=M[r.id]||{};if(diff(d,r.need)<=3&&(mm.s||'Chưa đặt')!=='Đã về')late++;});
+    let t=`<div class="tdw"><table class="tdtb"><tr><th rowspan=2>Hạng mục</th><th colspan=2>Kế hoạch</th><th colspan=2>Thực tế</th></tr><tr><th class="k">SL</th><th class="k">Cần</th><th class="t">Trạng thái</th><th class="t">Ngày</th></tr>`;
     R.forEach(r=>{const mm=M[r.id]||{},s=mm.s||'Chưa đặt',n=diff(d,r.need),lt=n<=3&&s!=='Đã về';
-      h+=`<tr class="dz" style="--c:${FC[r.z.floor]}"><td><b>${esc(r.z.k)}</b><br><small class="tds">${r.n}</small></td><td class="k">${r.q}</td><td class="k ${lt?'late':''}">${dm(r.need)}<br><small>${n>0?'còn '+n+' ngày':n===0?'hôm nay':'quá '+(-n)+' ngày'}</small></td><td class="t"><select data-m="${esc(r.id)}" style="width:92px;padding:5px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink)">${ST.map(o=>`<option${o===s?' selected':''}>${o}</option>`).join('')}</select></td><td class="t"><input type="date" data-md="${esc(r.id)}" value="${mm.d||''}" style="width:118px;padding:4px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink)"></td></tr>`;});
-    h+='</table></div>';});
-  if(!rows.length)h+='<div class="tdn">Không có hạng mục cần chuẩn bị cho lựa chọn này (zone đã đổ).</div>';
+      t+=`<tr><td>${r.n}</td><td class="k">${r.q}</td><td class="k ${lt?'late':''}">${dm(r.need)}<br><small>${n>0?'còn '+n+' ngày':n===0?'hôm nay':'quá '+(-n)+' ngày'}</small></td><td class="t"><select data-m="${esc(r.id)}" style="width:92px;padding:5px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink)">${ST.map(o=>`<option${o===s?' selected':''}>${o}</option>`).join('')}</select></td><td class="t"><input type="date" data-md="${esc(r.id)}" value="${mm.d||''}" style="width:118px;padding:4px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink)"></td></tr>`;});
+    return zdet(z,d,'pr-'+z.k,t+'</table></div>',late?`<b class="late">${late} mục cần chú ý</b>`:'');}).join(''));
+  if(!live.length)h+='<div class="tdn">Không có hạng mục cần chuẩn bị cho lựa chọn này (zone đã đổ).</div>';
   return h;
+}
+/* ---- báo cáo ---- */
+const hhmm=ts=>{const x=new Date(ts);return String(x.getHours()).padStart(2,'0')+':'+String(x.getMinutes()).padStart(2,'0')};
+function board(){
+  const d=bdate||todayS(),R=reps().filter(r=>r.date===d),W={};
+  R.forEach(r=>{const k=(r.who||'(không tên)').trim();(W[k]=W[k]||{am:null,pm:null,items:new Set(),ppl:0,mine:false,ids:[]});const w=W[k];const cur=w[r.ses];if(!cur||r.ts>cur.ts)w[r.ses]=r;w.ids.push(r);if(r.dev===DEV)w.mine=true;});
+  const names=Object.keys(W).sort((a,b)=>a.localeCompare(b,'vi'));
+  let h=`<div class="tdh"><b>Bảng theo dõi báo cáo</b><span class="tds">${SYN.err?'<span class="late">chưa kết nối được</span>':SYN.t?'cập nhật '+hhmm(SYN.t):'đang tải…'}</span></div><div class="tdbd"><button class="tdbtn s" data-bd="-1">‹</button><b>${dow(d)} ${dm(d)}${d===todayS()?' (hôm nay)':''}</b><button class="tdbtn s" data-bd="1">›</button><button class="tdbtn s" data-bd="r">Làm mới</button></div>`;
+  const unsent=reps().filter(r=>!r.sy).length;if(unsent)h+=`<div class="tdn late">Có ${unsent} báo cáo chưa gửi được lên hệ thống. App sẽ tự gửi lại khi có mạng.</div>`;
+  if(!names.length)return h+'<div class="tdn">Chưa có báo cáo nào trong ngày này.</div>';
+  h+='<div class="tdw"><table class="tdtb"><tr><th>Giám sát</th><th class="k">Đầu ngày<br>7h–8h</th><th class="t">Cuối ngày<br>17h30–19h</th><th>Đầu việc</th><th>Quân</th></tr>';
+  names.forEach(n=>{const w=W[n];const its=new Set(),tt=[];let q=0;[w.am,w.pm].forEach(r=>{if(!r)return;Object.keys(r.ppl||{}).forEach(k=>{its.add(k);});});
+    Object.keys(W[n].ids.reduce((a,r)=>{Object.keys(r.ppl||{}).forEach(k=>a[k]=1);return a},{})).forEach(k=>{const l=w.ids.filter(r=>r.ppl&&r.ppl[k]!=null).sort((a,b)=>b.ts-a.ts)[0];q+=+l.ppl[k]||0;});
+    const c=r=>r?`<b style="color:#2e8b57">✓</b> ${hhmm(r.ts)}${r.dev===DEV?` <button class="tdbtn s" data-rd="${esc(r.id)}" title="Xóa báo cáo này">✕</button>`:''}`:'<span class="tds">chưa</span>';
+    h+=`<tr><td><b>${esc(n)}</b></td><td class="k">${c(w.am)}</td><td class="t">${c(w.pm)}</td><td>${Object.keys(w.ids.reduce((a,r)=>{Object.keys(r.ppl||{}).concat(Object.keys(r.pct||{})).forEach(k=>a[k]=1);return a},{})).length}</td><td>${q}</td></tr>`;});
+  return h+'</table></div><div class="tds">Báo cáo của mọi giám sát trên các máy đều hiện ở đây. Chỉ người gửi mới xóa được báo cáo của mình.</div>';
 }
 function vRep(){
   const d=todayS(),i=clampI(d),hr=new Date().getHours(),ses=hr>=15?'pm':'am';
-  const fls=fl==='all'?RF.fl:fl;RF.fl=fls;
-  const Z=zones().filter(z=>z.floor===fls&&(RF.ntp==='all'||z.ntp===RF.ntp)&&z.pour>=d);
-  const its=Z.flatMap(z=>z.items).filter(it=>{const x=info(it,d);return !x.done});
-  let h=head()+`<div class="tdn">Báo cáo theo tầng, tổ đội và giám sát phụ trách: mỗi giám sát chỉ thấy các zone và đầu việc của tổ mình. Bản xem thử: lưu trên máy này; sau khi anh duyệt sẽ nối cơ sở dữ liệu chung.</div><div class="tdf">
-  <label>Tầng</label><select id="rfl"><option value="B1"${fls==='B1'?' selected':''}>Hầm B1</option><option value="T1"${fls==='T1'?' selected':''}>Tầng 1</option></select>
-  <label>Tổ đội / giám sát phụ trách</label><select id="rnt">${NTPS.map(n=>`<option${RF.ntp===n?' selected':''}>${n}</option>`).join('')}<option value="all"${RF.ntp==='all'?' selected':''}>Tất cả tổ (trưởng nhóm)</option></select>
+  const Z=zonesF().filter(z=>z.pour>=d);
+  const whos=[...new Set(reps().map(r=>r.who).filter(Boolean))];
+  let h=head()+`<div class="tdcard" id="tdboard" style="border-left-color:var(--acc2)">${board()}</div>
+  <h3>Gửi báo cáo mới</h3><div class="tdf"><label>Tên giám sát (bắt buộc)</label><input id="rwho" list="rwl" placeholder="Họ và tên giám sát" value="${esc(ld('td_who','')||'')}" autocomplete="off"><datalist id="rwl">${whos.map(w=>`<option value="${esc(w)}">`).join('')}</datalist>
   <label>Ngày báo cáo</label><input type="date" id="rd" value="${d}">
-  <label>Phiên báo cáo</label><select id="rs"><option value="am"${ses==='am'?' selected':''}>Đầu ngày (7h–8h): quân số, việc dự kiến</option><option value="pm"${ses==='pm'?' selected':''}>Cuối ngày (17h30–19h): khối lượng xong, tăng ca</option></select>
-  <label>Họ tên người báo cáo</label><input id="rwho" placeholder="Giám sát" value="${esc((ld('td_who','')||''))}">`;
-  if(!its.length)h+='<div class="tdn">Không có đầu việc đang thi công của tổ này ở tầng đã chọn.</div>';
-  Z.forEach(z=>{const l=z.items.filter(it=>its.includes(it));if(!l.length)return;
-    h+=`<h3 style="border-left:5px solid ${COL[zInfo(z,d).st]};padding-left:8px">${esc(z.k)} · ${esc(z.ntp)} <small class="tds">đổ ${dm(z.pour)}</small></h3><div class="tdrow h"><span>Đầu việc</span><span>Công nhân</span><span>% tích lũy</span></div>`;
-    l.forEach(it=>{const a=lastPct(it),x=info(it,d),cur=apl(it,i);h+=`<div class="tdrow"><span>${esc(it.task)}<br><small class="tds">KH hôm nay: ${it.plan_ppl[i]||0} người · KH đầu ngày ${f1(x.pp,0)}%${a?' · gần nhất '+f1(a.v,0)+'%':''}</small></span><input type="number" inputmode="numeric" min="0" data-p="${esc(it.id)}" placeholder="${it.plan_ppl[i]||0}" value="${cur==null?'':cur}"><input type="number" inputmode="decimal" min="0" max="100" data-i="${esc(it.id)}" placeholder="%" value="${a?a.v:''}"></div>`;});});
-  h+=`<label>Quân tăng ca sau 17h30 (tổng của tổ)</label><input type="number" inputmode="numeric" min="0" id="rot" value="0"><label>Ghi chú (vật tư, vướng mắc, thiếu quân…)</label><textarea id="rn" rows="3"></textarea><button class="tdbtn" id="rsv">Lưu báo cáo</button></div>`;
-  const R=reps().slice(-6).reverse();
-  if(R.length){h+='<h3>Báo cáo gần đây (máy này)</h3>';R.forEach(r=>{h+=`<div class="tdcard"><div class="tdh"><b>${dow(r.date)} ${dm(r.date)} · ${r.ses==='am'?'Đầu ngày':'Cuối ngày'} · ${esc(r.fl||'')} ${esc(r.ntp||'')}</b><button class="tdbtn s" data-del="${r.ts}">Xóa</button></div><div class="tds">${esc(r.who||'')} · ${Object.keys(r.ppl||{}).length} đầu việc có quân · ${Object.keys(r.pct||{}).length} có %${r.ot?' · tăng ca '+r.ot:''}${r.note?' · '+esc(r.note):''}</div></div>`;});}
+  <label>Phiên báo cáo</label><select id="rs"><option value="am"${ses==='am'?' selected':''}>Đầu ngày (7h–8h): quân số, việc dự kiến</option><option value="pm"${ses==='pm'?' selected':''}>Cuối ngày (17h30–19h): khối lượng xong, tăng ca</option></select>`;
+  const fs=fl==='all'?['B1','T1']:[fl];
+  fs.forEach(f=>{h+=`<div class="tdfh" style="background:${FC[f]}">${FLN[f]}</div>`;
+    NTPS.forEach(n=>{const zl=Z.filter(z=>z.floor===f&&z.ntp===n);const its=zl.flatMap(z=>z.items).filter(it=>!info(it,d).done);if(!its.length)return;
+      h+=`<h3>Tổ ${n}</h3><div class="tdrow h"><span>Đầu việc</span><span>Công nhân</span><span>% tích lũy</span></div>`;
+      its.forEach(it=>{const a=lastPct(it),x=info(it,d),cur=apl(it,i);h+=`<div class="tdrow"><span>${esc(it.floor+' '+it.zone)} · ${esc(it.task)}<br><small class="tds">KH hôm nay: ${it.plan_ppl[i]||0} người · KH đầu ngày ${f1(x.pp,0)}%${a?' · gần nhất '+f1(a.v,0)+'%':''}</small></span><input type="number" inputmode="numeric" min="0" data-p="${esc(it.id)}" placeholder="${it.plan_ppl[i]||0}" value="${cur==null?'':cur}"><input type="number" inputmode="decimal" min="0" max="100" data-i="${esc(it.id)}" placeholder="%" value="${a?a.v:''}"></div>`;});});});
+  h+=`<label>Quân tăng ca sau 17h30 (tổng)</label><input type="number" inputmode="numeric" min="0" id="rot" value="0"><label>Ghi chú (vật tư, vướng mắc, thiếu quân…)</label><textarea id="rn" rows="3"></textarea><button class="tdbtn" id="rsv">Gửi báo cáo</button></div>`;
   return h;
 }
+function popup(t,m){let p=$('#tdpop');if(p)p.remove();p=document.createElement('div');p.id='tdpop';p.className='tdpop';p.innerHTML=`<div class="tdpb"><div class="tdok">✓</div><h3>${t}</h3><p>${m}</p><button class="tdbtn" id="tdpx">Đóng</button></div>`;document.body.appendChild(p);$('#tdpx').onclick=()=>p.remove();p.onclick=e=>{if(e.target===p)p.remove();};}
 const V={ov:vOv,zn:vZone,mn:vMan,pr:vPrep,rp:vRep};
 const TB=[['ov','Tổng quan'],['zn','Zone'],['mn','Nhân lực'],['pr','Chuẩn bị'],['rp','Báo cáo']];
+function bindBoard(r){
+  r.querySelectorAll('[data-bd]').forEach(b=>b.onclick=async()=>{const v=b.dataset.bd;if(v==='r'){await sync();const e=$('#tdboard');if(e){e.innerHTML=board();bindBoard(e);}return;}const d=new Date((bdate||todayS())+'T00:00:00');d.setDate(d.getDate()+(+v));bdate=iso(d);const e=$('#tdboard');e.innerHTML=board();bindBoard(e);});
+  r.querySelectorAll('[data-rd]').forEach(b=>b.onclick=async()=>{if(!confirm('Xóa báo cáo này khỏi hệ thống?'))return;const id=b.dataset.rd;try{await rpc('td_del',{p_id:id,p_dev:DEV});}catch(e){alert('Chưa xóa được, kiểm tra mạng');return;}setRC(reps().filter(x=>x.id!==id));draw();});
+}
 function draw(){
   const r=$('#tdr');if(!r)return;const y=window.scrollY;
   r.innerHTML=flbar()+`<div class="tdt">${TB.map(t=>`<button data-tb="${t[0]}" aria-pressed="${t[0]===tab}">${t[1]}</button>`).join('')}</div>`+V[tab]();
-  r.querySelectorAll('[data-fl]').forEach(b=>b.onclick=()=>{fl=b.dataset.fl;try{localStorage.setItem('td_fl',fl)}catch(e){}if(fl!=='all'&&zsel&&!zsel.startsWith(fl))zsel=null;if(fl!=='all')RF.fl=fl;draw();});
+  const fs=$('#flsel');fs.onchange=()=>{fl=fs.value;try{localStorage.setItem('td_fl2',fl)}catch(e){}if(fl!=='all'&&zsel&&!zsel.startsWith(fl))zsel=null;draw();};
   r.querySelectorAll('[data-tb]').forEach(b=>b.onclick=()=>{tab=b.dataset.tb;draw();window.scrollTo(0,0);});
   r.querySelectorAll('[data-z]').forEach(b=>b.onclick=()=>{zsel=b.dataset.z;tab='zn';draw();window.scrollTo(0,0);});
   r.querySelectorAll('[data-pin]').forEach(b=>b.onclick=()=>{const k=b.dataset.pin;if(b.dataset.mode==='go'){zsel=k;tab='zn';draw();window.scrollTo(0,0);}else{zsel=zsel===k?null:k;draw();window.scrollTo(0,y);}});
   r.querySelectorAll('[data-zs]').forEach(b=>b.onclick=()=>{zsel=zsel===b.dataset.zs?null:b.dataset.zs;draw();window.scrollTo(0,y);});
+  r.querySelectorAll('details[data-k]').forEach(e=>e.ontoggle=()=>{const k=e.dataset.k;if(e.open)OPEN.add(k);else OPEN.delete(k);});
   r.querySelectorAll('[data-m]').forEach(s=>s.onchange=()=>{const M=ld(MK,{});(M[s.dataset.m]=M[s.dataset.m]||{}).s=s.value;sv(MK,M);draw();window.scrollTo(0,y);});
   r.querySelectorAll('[data-md]').forEach(s=>s.onchange=()=>{const M=ld(MK,{});(M[s.dataset.md]=M[s.dataset.md]||{}).d=s.value;sv(MK,M);});
-  r.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{if(!confirm('Xóa báo cáo này?'))return;sv(RK,ld(RK,[]).filter(x=>String(x.ts)!==b.dataset.del));draw();});
-  const rf=$('#rfl');if(rf){rf.onchange=()=>{RF.fl=rf.value;if(fl!=='all'){fl=rf.value;try{localStorage.setItem('td_fl',fl)}catch(e){}}draw();};$('#rnt').onchange=e=>{RF.ntp=e.target.value;draw();};}
-  const sb=$('#rsv');if(sb)sb.onclick=()=>{
-    const who=$('#rwho').value.trim();sv('td_who',who);
-    const rec={date:$('#rd').value,ses:$('#rs').value,fl:RF.fl,ntp:RF.ntp,who,ppl:{},pct:{},ot:+$('#rot').value||0,note:$('#rn').value.trim(),ts:Date.now()};
+  bindBoard(r);
+  const sb=$('#rsv');if(sb)sb.onclick=async()=>{
+    const who=$('#rwho').value.trim();
+    if(!who){alert('Nhập tên giám sát trước khi gửi báo cáo');$('#rwho').focus();return;}
+    sv('td_who',who);
+    const rec={id:Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),date:$('#rd').value,ses:$('#rs').value,fl:fl==='all'?'B1+T1':fl,who,dev:DEV,ppl:{},pct:{},ot:+$('#rot').value||0,note:$('#rn').value.trim(),ts:Date.now()};
     r.querySelectorAll('[data-p]').forEach(e=>{if(e.value!=='')rec.ppl[e.dataset.p]=+e.value;});
     let bad=false;r.querySelectorAll('[data-i]').forEach(e=>{if(e.value==='')return;const v=+e.value;if(!(v>=0&&v<=100))bad=true;rec.pct[e.dataset.i]=v;});
     if(bad){alert('% phải nằm trong khoảng 0–100');return;}
     if(!rec.date){alert('Chọn ngày báo cáo');return;}
     if(!Object.keys(rec.ppl).length&&!Object.keys(rec.pct).length){alert('Nhập ít nhất số công nhân hoặc % của một đầu việc');return;}
-    const a=ld(RK,[]);a.push(rec);sv(RK,a);tab='ov';draw();window.scrollTo(0,0);
+    sb.disabled=true;sb.textContent='Đang gửi…';
+    reps();setRC(RC.concat([rec]));
+    const ok=await sync();
+    const sent=reps().find(x=>x.id===rec.id);
+    bdate=rec.date;draw();window.scrollTo(0,0);
+    if(sent&&sent.sy)popup('Đã gửi báo cáo','Báo cáo của '+esc(who)+' ('+(rec.ses==='am'?'đầu ngày':'cuối ngày')+', '+dm(rec.date)+') đã được gửi. Mọi người dùng app đều thấy trong bảng theo dõi.');
+    else popup('Đã lưu báo cáo','Chưa gửi được lên hệ thống (có thể mất mạng). Báo cáo được giữ trên máy và app sẽ tự gửi lại khi có mạng.');
   };
+}
+function tick(){
+  if(!$('#tdr')){clearInterval(TIMER);TIMER=null;return;}
+  sync().then(ch=>{if(!$('#tdr'))return;const a=document.activeElement;const typing=a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName);
+    if(tab==='rp'){const e=$('#tdboard');if(e&&!(a&&e.contains(a))){e.innerHTML=board();bindBoard(e);}}
+    else if(ch&&!typing)draw();});
 }
 window.TD={open:async function(el){
   css();el.innerHTML='<div id="tdr"><div class="tdn">Đang tải kế hoạch…</div></div>';
   try{if(!K){const r=await fetch('data/kehoach.json',{cache:'no-cache'});K=await r.json();}}
   catch(e){el.innerHTML='<div id="tdr"><div class="tdn">Chưa tải được dữ liệu kế hoạch. Kiểm tra mạng rồi mở lại.</div></div>';return;}
-  draw();
+  reps();draw();
+  sync().then(ch=>{if(ch&&$('#tdr'))draw();});
+  if(!TIMER)TIMER=setInterval(tick,45000);
 }};
 })();
