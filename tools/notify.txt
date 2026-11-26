@@ -1,1 +1,1 @@
-Tem QR dầm tầng 1 đã có Zone: quét sẽ hiện Zone 1.1–3.3 và lọc đúng đoạn dầm theo Zone; bấm nút Zone để xem ranh.
+Mặt bằng dầm sàn tầng 1 trong app QR đã hiển thị đầy đủ (đến tên bản vẽ phía dưới) và có ghi chú bản vẽ.
