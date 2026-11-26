@@ -23,7 +23,7 @@ function ix(d){const i=K.dates.indexOf(d);return i>=0?i:(d<K.dates[0]?-1:N());}
 const clampI=d=>Math.min(Math.max(ix(d),0),N()-1);
 let RC=null,RS=null,SYN={t:null,err:false,busy:false};
 const setRC=a=>{RC=a;RS=null;sv(RK,a);};
-const reps=()=>{if(!RC)RC=ld(RK,[]);return RS||(RS=RC.slice().sort((a,b)=>(a.date+a.ses+a.ts).localeCompare(b.date+b.ses+b.ts)));};
+const reps=()=>{if(!RC)RC=ld(RK,[]);return RS||(RS=RC.concat((K&&K.sl_seed)||[]).sort((a,b)=>(a.date+a.ses+a.ts).localeCompare(b.date+b.ses+b.ts)));};
 async function rpc(fn,body){const r=await fetch(SBU+fn,{method:'POST',headers:{apikey:SBK,Authorization:'Bearer '+SBK,'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)throw new Error(r.status);const t=await r.text();return t?JSON.parse(t):null;}
 async function sync(){
   if(SYN.busy)return false;SYN.busy=true;let ch=false;
@@ -410,16 +410,38 @@ function formSl(){
     h+=`<div class="tdcard" style="border-left-color:${COL[e.st]}"><div class="tdh"><b>${esc(c[1])}</b>${schip(e.st,e.p)}</div><div class="tdsl">`+['cf','th','bt'].map(w=>{const v=e.v[w];const lab=w==='cf'?c[2]:WL[w];return`<label>${lab}<input type="number" inputmode="decimal" min="0" max="100" data-i="${sid(QF.fl,QF.z,c[0],w)}" data-o="${v==null?'':v}" placeholder="%" value="${v==null?'':v}"></label>`;}).join('')+`</div></div>`;});
   return h;
 }
-function vSl(){
-  let h=`<div class="tdn">Tracking sản lượng do GS BCH nhập theo mẻ đổ (zone). Hạng mục gồm cột, vách, dầm – sàn (kèm mũ cột), bể nước PCCC (hầm B1) và các bước chung của BPTC hầm tổng thể. Số liệu tự cập nhật vào Kế hoạch & Tiến độ (Thực tế % và trạng thái đã đổ BT).</div><h3>Tổng hợp theo BPTC hầm tổng thể</h3>`+stepsHtml(false)+'<h3>Chi tiết theo tầng và zone</h3>'+slLevels()+`<h3>Nhật ký báo cáo</h3><div class="tdcard" id="tdboard" style="border-left-color:var(--acc2)">${boardSl()}</div><h3>Nhập sản lượng</h3><div class="tdf">`+formSl()+`<label>Ghi chú</label><textarea id="rn" rows="3"></textarea><button class="tdbtn" id="rsv">Gửi báo cáo sản lượng</button></div>`;
+let slTab='map',slF='B1',slZ=null;
+function elTable(lv,zn){const body=cat(lv,zn).map(c=>{const e=elPct(lv,zn,c[0]);return`<tr><td>${esc(c[1])}</td>${['cf','th','bt'].map(w=>`<td class="t">${e.v[w]==null?'·':f1(e.v[w],0)+'%'}</td>`).join('')}<td>${schip(e.st,e.p)}</td></tr>`;}).join('');
+  return`<div class="tdw"><table class="tdtb"><tr><th>Hạng mục</th><th>Cốp pha</th><th>Cốt thép</th><th>Bê tông</th><th>Trạng thái</th></tr>${body}</table></div>`;}
+function slMapView(){
+  const f=slF,M=K.maps[f];
+  let h=`<div class="tdfl"><label for="slf">Tầng</label><select id="slf" style="border-color:${FC[f]}"><option value="B1"${f==='B1'?' selected':''}>Hầm B1</option><option value="T1"${f==='T1'?' selected':''}>Tầng 1</option></select></div>`;
+  let np=0,nw=0;const zs=lvZones(f);
+  h+=`<div class="tdmap"><span class="tdmt" style="background:${FC[f]}">Mặt bằng sản lượng ${f==='B1'?'hầm B1':'tầng 1'}</span><img src="${M.img}" alt="">`;
+  zs.forEach(zn=>{const p=M.pins[zn];if(!p)return;const e=elPct(f,zn,'ds'),pd=pouredDate(f,zn);if(pd)np++;else if(e.any)nw++;
+    const col=pd?COL.ok:e.any?COL.wn:COL.na;
+    h+=`<button class="tdpin${slZ===zn?' sel':''}" data-slpin="${zn}" style="left:${p[0]*100}%;top:${Math.max(p[1],0.08)*100}%;background:${col}">${zn}<small>${pd?'✔ đổ '+dm(pd):e.any?f1(e.p,0)+'%':'chưa thi công'}</small></button>`;});
+  h+=`</div><div class="tdlg"><span><i style="background:${COL.ok}"></i>Đã đổ BT dầm sàn</span><span><i style="background:${COL.wn}"></i>Đang thi công</span><span><i style="background:${COL.na}"></i>Chưa thi công</span></div><div class="tds">${np}/${zs.length} zone đã đổ BT · ${nw} zone đang thi công · bấm vào zone để xem cốp pha, cốt thép, bê tông từng hạng mục.</div>`;
+  if(slZ&&zs.includes(slZ)){const e=elPct(f,slZ,'ds'),pd=pouredDate(f,slZ),kz=K.items.find(i=>i.floor===f&&i.zone===slZ);
+    const last=['cf','th','bt'].map(w=>lastId(sid(f,slZ,'ds',w))).filter(Boolean).sort((a,b)=>(b.date+b.ts).localeCompare(a.date+a.ts))[0];
+    h+=`<div class="tdcard" style="border-left-color:${pd?COL.ok:e.any?COL.wn:COL.na}"><div class="tdh"><b><span class="tdfb" style="background:${FC[f]}">${f}</span> Zone ${esc(slZ.slice(1))}</b>${schip(pd?'ok':e.st,e.p)}</div><div class="tds">${pd?'<b style="color:'+COL.ok+'">✔ đã đổ BT dầm sàn '+dm(pd)+'</b>':kz&&kz.pour<todayS()?'<b style="color:'+COL.bd+'">chưa báo cáo đã đổ (KH '+dm(kz.pour)+')</b>':'chưa đổ BT'+(kz?' · KH '+dm(kz.pour):' · không có trong kế hoạch REV49')}${last?' · cập nhật '+dm(last.date)+' bởi '+esc(last.who||'—'):''}</div>${elTable(f,slZ)}<button class="tdbtn" data-slrep="1" style="margin-top:8px">Nhập báo cáo cho zone này</button></div>`;}
+  const ca=cat(f,'ALL');
+  h+=`<h3>Hạng mục chung của ${f==='B1'?'hầm B1':'tầng 1'}</h3><div class="tdcard">${elTable(f,'ALL')}<button class="tdbtn" data-slrep="ALL" style="margin-top:8px">Nhập báo cáo hạng mục chung</button></div>`;
   return h;
+}
+function vSl(){
+  const T=[['map','Mặt bằng sản lượng'],['sum','Tổng hợp'],['rep','Báo cáo']];
+  let h=`<div class="tdt">${T.map(t=>`<button data-st="${t[0]}" aria-pressed="${t[0]===slTab}">${t[1]}</button>`).join('')}</div>`;
+  if(slTab==='map')return h+`<div class="tdn">Tracking sản lượng do GS BCH nhập theo mẻ đổ (zone). Màu zone cập nhật theo báo cáo mới nhất; số liệu cũng đưa vào Kế hoạch & Tiến độ.</div>`+slMapView();
+  if(slTab==='sum')return h+'<h3>Tổng hợp theo BPTC hầm tổng thể</h3>'+stepsHtml(false)+'<h3>Chi tiết theo tầng và zone</h3>'+slLevels();
+  return h+`<h3>Nhật ký báo cáo</h3><div class="tdcard" id="tdboard" style="border-left-color:var(--acc2)">${boardSl()}</div><h3>Nhập sản lượng</h3><div class="tdf">`+formSl()+`<label>Ghi chú</label><textarea id="rn" rows="3"></textarea><button class="tdbtn" id="rsv">Gửi báo cáo sản lượng</button></div>`;
 }
 function popup(t,m){let p=$('#tdpop');if(p)p.remove();p=document.createElement('div');p.id='tdpop';p.className='tdpop';p.innerHTML=`<div class="tdpb"><div class="tdok">✓</div><h3>${t}</h3><p>${m}</p><button class="tdbtn" id="tdpx">Đóng</button></div>`;document.body.appendChild(p);$('#tdpx').onclick=()=>p.remove();p.onclick=e=>{if(e.target===p)p.remove();};}
 const V={ov:vOv,zn:vZone,mn:vMan,pr:vPrep};
 const TB=[['ov','Tổng quan'],['zn','Zone'],['mn','Nhân lực'],['pr','Chuẩn bị']];
 function bindBoard(r){
   r.querySelectorAll('[data-bd]').forEach(b=>b.onclick=async()=>{const v=b.dataset.bd;if(v==='r'){await sync();const e=$('#tdboard');if(e){e.innerHTML=board(MODE);bindBoard(e);}return;}const d=new Date((bdate||todayS())+'T00:00:00');d.setDate(d.getDate()+(+v));bdate=iso(d);const e=$('#tdboard');e.innerHTML=board(MODE);bindBoard(e);});
-  r.querySelectorAll('[data-rd]').forEach(b=>b.onclick=async()=>{if(!confirm('Xóa báo cáo này khỏi hệ thống?'))return;const id=b.dataset.rd;try{await rpc('td_del',{p_id:id,p_dev:DEV});}catch(e){alert('Chưa xóa được, kiểm tra mạng');return;}setRC(reps().filter(x=>x.id!==id));draw();});
+  r.querySelectorAll('[data-rd]').forEach(b=>b.onclick=async()=>{if(!confirm('Xóa báo cáo này khỏi hệ thống?'))return;const id=b.dataset.rd;try{await rpc('td_del',{p_id:id,p_dev:DEV});}catch(e){alert('Chưa xóa được, kiểm tra mạng');return;}setRC(RC.filter(x=>x.id!==id));draw();});
 }
 function draw(){
   const r=$('#tdr');if(!r)return;const y=window.scrollY;
@@ -433,6 +455,10 @@ function draw(){
   r.querySelectorAll('[data-m]').forEach(s=>s.onchange=()=>{const M=ld(MK,{});(M[s.dataset.m]=M[s.dataset.m]||{}).s=s.value;sv(MK,M);draw();window.scrollTo(0,y);});
   r.querySelectorAll('[data-md]').forEach(s=>s.onchange=()=>{const M=ld(MK,{});(M[s.dataset.md]=M[s.dataset.md]||{}).d=s.value;sv(MK,M);});
   bindBoard(r);
+  r.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>{slTab=b.dataset.st;draw();window.scrollTo(0,0);});
+  const sf=$('#slf');if(sf)sf.onchange=()=>{slF=sf.value;slZ=null;draw();};
+  r.querySelectorAll('[data-slpin]').forEach(b=>b.onclick=()=>{slZ=slZ===b.dataset.slpin?null:b.dataset.slpin;draw();window.scrollTo(0,y);});
+  r.querySelectorAll('[data-slrep]').forEach(b=>b.onclick=()=>{QF.fl=slF;QF.z=b.dataset.slrep==='ALL'?'ALL':slZ;slTab='rep';draw();window.scrollTo(0,0);});
   const cap=()=>{const w=$('#rwho');if(w)QF.who=w.value;const dd=$('#rd');if(dd)QF.d=dd.value;const ss=$('#rs');if(ss)QF.s=ss.value;};
   const qf=$('#qfl');if(qf)qf.onchange=()=>{cap();QF.fl=qf.value;QF.z='';draw();};
   const qz=$('#qz');if(qz)qz.onchange=()=>{cap();QF.z=qz.value;draw();};
@@ -461,7 +487,7 @@ function draw(){
 function tick(){
   if(!$('#tdr')){clearInterval(TIMER);TIMER=null;return;}
   sync().then(ch=>{if(!$('#tdr'))return;const a=document.activeElement;const typing=a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName);
-    if(MODE!=='plan'){const e=$('#tdboard');if(e&&!(a&&e.contains(a))){e.innerHTML=board(MODE);bindBoard(e);}}
+    if(MODE!=='plan'){const e=$('#tdboard');if(e){if(!(a&&e.contains(a))){e.innerHTML=board(MODE);bindBoard(e);}}else if(ch&&!typing)draw();}
     else if(ch&&!typing)draw();});
 }
 window.TD={open:async function(el,mode){
@@ -469,7 +495,7 @@ window.TD={open:async function(el,mode){
   css();el.innerHTML='<div id="tdr"><div class="tdn">Đang tải kế hoạch…</div></div>';
   try{if(!K){const r=await fetch('data/kehoach.json',{cache:'no-cache'});K=await r.json();}}
   catch(e){el.innerHTML='<div id="tdr"><div class="tdn">Chưa tải được dữ liệu kế hoạch. Kiểm tra mạng rồi mở lại.</div></div>';return;}
-  reps();draw();
+  RS=null;slTab='map';slF='B1';slZ=null;reps();draw();
   sync().then(ch=>{if(ch&&$('#tdr'))draw();});
   if(!TIMER)TIMER=setInterval(tick,45000);
 }};
