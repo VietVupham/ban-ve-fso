@@ -584,7 +584,7 @@ setInterval(()=>{if(!document.hidden&&!$('#v').classList.contains('on'))syncChec
 
 load().catch(err=>{$('#app').innerHTML='<div class="empty">Không tải được dữ liệu: '+esc(err.message)+'</div>';});
 </script>
-<script src="chat.js?v=1" defer></script>
+<script src="chat.js?v=2" defer></script>
 <script>if("serviceWorker" in navigator&&location.protocol.startsWith("http"))navigator.serviceWorker.register("sw.js").catch(()=>{});</script>
 </body>
 </html>

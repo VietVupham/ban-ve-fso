@@ -98,7 +98,7 @@ async function ask(q){
     try{
       if(window.TD)sum=await window.TD.facts();
       const pass=rt.res.map((r,i)=>{const d=describe(r);return{n:i+1,title:d.t,where:d.w,text:plain(r,rt.t)};});
-      const ac=new AbortController(),to=setTimeout(()=>ac.abort(),30000);
+      const ac=new AbortController(),to=setTimeout(()=>ac.abort(),16000);
       const resp=await fetch(EP,{method:'POST',signal:ac.signal,headers:{'Content-Type':'application/json',apikey:KEY,Authorization:'Bearer '+KEY},body:JSON.stringify({q,pass,facts:sum,hist:HIST.slice(-2),dev:dev()})});clearTimeout(to);
       const j=await resp.json().catch(()=>({}));
       if(resp.ok&&j.ok&&j.answer){ai=j.answer;if(j.left!=null&&j.left<=3)note=`Còn ${j.left} câu hỏi AI hôm nay.`;}
