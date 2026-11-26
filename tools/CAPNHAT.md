@@ -31,3 +31,6 @@ Là bản sao của repo riêng `VietVupham/thep-qr-b1` (index.html + thư mục
 
 ## Zone tầng 1 (tự động)
 Nguồn ranh Zone: BPTC cốp pha dầm sàn T1 (MOS.029) trang "Mặt bằng chia Zone, lỗ mở và mạch ngừng". Ranh được căn lên mặt bằng thiết kế bằng các nhãn dầm trùng nhau (scale ≈2.177); mỗi ghim có `z`, tem có "ZONE x.y" trong tên đơn hàng chỉ hiện đoạn thuộc Zone đó. Khi BPTC đổi ranh, cập nhật hàm zone() rồi chạy lại.
+
+## QUY TẮC AN TOÀN: tầng 1 ≠ hầm B1
+Tem có "1F" / "TẦNG 1" trong tên đơn hàng hoặc cấu kiện bắt đầu "L1." thì `findDetail()` (qr/index.html) chỉ được lấy chi tiết có `floor:'L1'`. Khi nhập bản vẽ shop tầng 1 phải gắn `floor:'L1'` cho từng trang chi tiết; tuyệt đối không dùng chi tiết hầm B1 cho tem tầng 1.

@@ -1,1 +1,1 @@
-Mặt bằng dầm sàn tầng 1 trong app QR đã hiển thị đầy đủ (đến tên bản vẽ phía dưới) và có ghi chú bản vẽ.
+SỬA LỖI AN TOÀN: tem tầng 1 (1F) không còn hiện chi tiết thép/bản vẽ shop hầm B1. Thêm nút 'Cả MB' xem toàn bộ mặt bằng. Vui lòng đóng và mở lại app.
